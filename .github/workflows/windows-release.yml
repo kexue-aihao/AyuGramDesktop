@@ -65,10 +65,9 @@ jobs:
   build:
     name: Windows ${{ matrix.arch }} portable
     needs: version
-    # Use a currently schedulable GitHub-hosted runner. Dependency
-    # preparation still builds large codec libraries twice (Debug and
-    # Release), so the larger hosted image is needed for a cold cache.
-    runs-on: windows-latest-8-cores
+    # Larger hosted runner labels require a paid runner allocation in this
+    # repository and stay queued indefinitely. This image is schedulable.
+    runs-on: windows-2022
     timeout-minutes: 360
     strategy:
       fail-fast: false
@@ -143,18 +142,19 @@ jobs:
             ${{ matrix.libraries }}/cache_keys/[qQ]t_*
           key: windows-2022-${{ matrix.arch }}-qt-msvc1444-v1-${{ hashFiles('src/Telegram/build/prepare/**', 'src/Telegram/build/qt_version.py') }}
       - name: Prepare dependencies
+        id: prepare
         shell: cmd
         run: call src\Telegram\build\prepare\win.bat silent
       - name: Prune library build intermediates
         run: ./src/.github/scripts/prune_windows_libraries.ps1 -LibrariesPath '${{ matrix.libraries }}'
       - name: Save third-party tools
-        if: steps.tools.outputs.cache-hit != 'true'
+        if: always() && steps.prepare.outcome == 'success' && steps.tools.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ThirdParty
           key: ${{ steps.tools.outputs.cache-primary-key }}
       - name: Save libraries
-        if: steps.libraries.outputs.cache-hit != 'true'
+        if: always() && steps.prepare.outcome == 'success' && steps.libraries.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: |
@@ -164,7 +164,7 @@ jobs:
             !${{ matrix.libraries }}/cache_keys/[qQ]t_*
           key: ${{ steps.libraries.outputs.cache-primary-key }}
       - name: Save Qt
-        if: steps.qt.outputs.cache-hit != 'true'
+        if: always() && steps.prepare.outcome == 'success' && steps.qt.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: |
