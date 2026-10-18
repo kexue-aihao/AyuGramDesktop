@@ -650,11 +650,11 @@ stage('openssl3', """
     git clone -b openssl-3.2.1 https://github.com/openssl/openssl openssl3
     cd openssl3
 win32:
-    perl Configure no-shared no-tests debug-VC-WIN32 /FS
+    perl Configure no-shared no-tests debug-VC-WIN32
 win64:
-    perl Configure no-shared no-tests debug-VC-WIN64A /FS
+    perl Configure no-shared no-tests debug-VC-WIN64A
 winarm:
-    perl Configure no-shared no-tests debug-VC-WIN64-ARM /FS
+    perl Configure no-shared no-tests debug-VC-WIN64-ARM
 win:
     nmake build_libs
     mkdir out.dbg
@@ -666,11 +666,11 @@ release:
     nmake clean
     move out.dbg\\ossl_static out.dbg\\ossl_static.pdb
 win32_release:
-    perl Configure no-shared no-tests VC-WIN32 /FS
+    perl Configure no-shared no-tests VC-WIN32
 win64_release:
-    perl Configure no-shared no-tests VC-WIN64A /FS
+    perl Configure no-shared no-tests VC-WIN64A
 winarm_release:
-    perl Configure no-shared no-tests VC-WIN64-ARM /FS /Gs4096
+    perl Configure no-shared no-tests VC-WIN64-ARM /Gs4096
 win_release:
     nmake build_libs
     mkdir out
