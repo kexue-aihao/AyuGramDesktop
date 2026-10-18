@@ -74,7 +74,8 @@ public:
 	[[nodiscard]] rpl::producer<LoadedPart> partsForDownloader() const;
 	void loadForDownloader(
 		not_null<Storage::StreamedFileDownloader*> downloader,
-		int64 offset);
+		int64 offset,
+		int requestsLimit);
 	void doneForDownloader(int64 offset);
 	void cancelForDownloader(
 		not_null<Storage::StreamedFileDownloader*> downloader);
@@ -249,6 +250,7 @@ private:
 	std::atomic<crl::semaphore*> _waiting = nullptr;
 	std::atomic<crl::semaphore*> _sleeping = nullptr;
 	std::atomic<bool> _stopStreamingAsync = false;
+	std::atomic<int> _downloaderRequestsLimit = 4;
 	PriorityQueue _loadingOffsets;
 
 	Slices _slices;

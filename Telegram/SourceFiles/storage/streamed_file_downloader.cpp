@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "storage/streamed_file_downloader.h"
 
+#include "ayu/ayu_settings.h"
 #include "media/streaming/media_streaming_loader.h"
 #include "media/streaming/media_streaming_reader.h"
 
@@ -17,6 +18,18 @@ using namespace Media::Streaming;
 
 constexpr auto kPartSize = Loader::kPartSize;
 constexpr auto kRequestPartsCount = 32;
+
+int DownloadRequestsLimit(DownloadSpeedBoost boost) {
+	switch (boost) {
+	case DownloadSpeedBoost::Off:
+		return 4;
+	case DownloadSpeedBoost::Fast:
+		return 32;
+	case DownloadSpeedBoost::Ultra:
+		return 128;
+	}
+	Unexpected("Invalid download speed boost.");
+}
 
 } // namespace
 
@@ -53,6 +66,8 @@ StreamedFileDownloader::StreamedFileDownloader(
 , _cacheKey(cacheKey)
 , _fileLocationKey(fileLocationKey)
 , _reader(std::move(reader))
+, _requestsLimit(DownloadRequestsLimit(
+	AyuSettings::getInstance().downloadSpeedBoost()))
 , _partsCount((size + kPartSize - 1) / kPartSize) {
 	_partIsSaved.resize(_partsCount, false);
 
@@ -85,7 +100,7 @@ Data::FileOrigin StreamedFileDownloader::fileOrigin() const {
 void StreamedFileDownloader::requestParts() {
 	while (!_finished
 		&& _nextPartIndex < _partsCount
-		&& _partsRequested < kRequestPartsCount) {
+		&& _partsRequested < std::max(kRequestPartsCount, _requestsLimit)) {
 		requestPart();
 	}
 	_reader->continueDownloaderFromMainThread();
@@ -104,7 +119,7 @@ void StreamedFileDownloader::requestPart() {
 		return;
 	}
 	_nextPartIndex = index + 1;
-	_reader->loadForDownloader(this, index * kPartSize);
+	_reader->loadForDownloader(this, index * kPartSize, _requestsLimit);
 	++_partsRequested;
 }
 

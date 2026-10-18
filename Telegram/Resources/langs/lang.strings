@@ -9109,6 +9109,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_CollapseSimilarChannels" = "Collapse Similar Channels";
 "ayu_HideSimilarChannelsTab" = "Hide Similar Channels Tab";
 "ayu_UploadSpeedBoostPC" = "Upload Speed Boost";
+"ayu_DownloadSpeedBoostPC" = "Download Acceleration";
+"ayu_DownloadSpeedBoostDescriptionPC" = "Speed up video, audio and animation downloads. Applies to newly started downloads. Higher levels use more memory and may improve download speeds on high-latency connections.";
+"ayu_DownloadSpeedBoostOff" = "Off";
+"ayu_DownloadSpeedBoostFast" = "Fast";
+"ayu_DownloadSpeedBoostUltra" = "Ultra";
 "ayu_MainFont" = "Application Font";
 "ayu_MonospaceFont" = "Monospace Font";
 "ayu_FontDefault" = "Default";

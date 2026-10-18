@@ -25,7 +25,6 @@ constexpr auto kSlicesInMemory = 2;
 
 // 1 MB of parts are requested from cloud ahead of reading demand.
 constexpr auto kPreloadPartsAhead = 8;
-constexpr auto kDownloaderRequestsLimit = 4;
 
 using PartsMap = base::flat_map<uint32, QByteArray>;
 
@@ -938,14 +937,17 @@ rpl::producer<LoadedPart> Reader::partsForDownloader() const {
 
 void Reader::loadForDownloader(
 		not_null<Storage::StreamedFileDownloader*> downloader,
-		int64 offset) {
+		int64 offset,
+		int requestsLimit) {
 	Expects(offset >= 0 && offset <= std::numeric_limits<uint32>::max());
+	Expects(requestsLimit > 0);
 
 	if (_attachedDownloader != downloader) {
 		if (_attachedDownloader) {
 			cancelForDownloader(_attachedDownloader);
 		}
 		_attachedDownloader = downloader;
+		_downloaderRequestsLimit.store(requestsLimit, std::memory_order_relaxed);
 		_loader->attachDownloader(downloader);
 	}
 	_downloaderOffsetRequests.emplace(uint32(offset));
@@ -1073,7 +1075,8 @@ void Reader::pruneDoneDownloaderRequests() {
 void Reader::sendDownloaderRequests() {
 	auto &&offsets = ranges::views::all(
 		_offsetsForDownloader
-	) | ranges::views::take(kDownloaderRequestsLimit);
+	) | ranges::views::take(
+		_downloaderRequestsLimit.load(std::memory_order_relaxed));
 	for (const auto offset : offsets) {
 		if ((!_cacheHelper || !downloaderWaitForCachedSlice(offset))
 			&& _downloaderOffsetsRequested.emplace(offset).second) {

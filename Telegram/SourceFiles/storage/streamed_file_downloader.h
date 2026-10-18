@@ -64,6 +64,7 @@ private:
 	std::shared_ptr<Media::Streaming::Reader> _reader;
 
 	std::vector<bool> _partIsSaved; // vector<bool> :D
+	const int _requestsLimit = 0;
 	mutable int _nextPartIndex = 0;
 	int _partsCount = 0;
 	int _partsRequested = 0;

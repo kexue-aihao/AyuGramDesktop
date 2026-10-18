@@ -6,7 +6,6 @@
 // Copyright @Radolyn, 2026
 #include "ayu/ui/settings/settings_general.h"
 
-#include "lang_auto.h"
 #include "ayu/ayu_settings.h"
 #include "ayu/ui/settings/ayu_builder.h"
 #include "ayu/ui/settings/settings_ayu_utils.h"
@@ -14,17 +13,22 @@
 #include "base/platform/base_platform_info.h"
 #include "core/application.h"
 #include "lang/lang_text_entity.h"
+#include "lang_auto.h"
 #include "platform/platform_translate_provider.h"
+#include "rpl/combine.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
-#include "styles/style_menu_icons.h"
-#include "styles/style_settings.h"
 #include "ui/boxes/single_choice_box.h"
 #include "ui/toast/toast.h"
 #include "ui/widgets/buttons.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
+
+#include <array>
+
+#include "styles/style_menu_icons.h"
+#include "styles/style_settings.h"
 
 namespace Settings {
 
@@ -154,6 +158,52 @@ void BuildShowPeerId(SectionBuilder &builder) {
 	});
 }
 
+void BuildDownloadSpeedBoost(SectionBuilder &builder) {
+	const auto settings = &AyuSettings::getInstance();
+	const auto controller = builder.controller();
+
+	builder.addSubsectionTitle(tr::lng_downloads_section());
+	builder.addButton({
+		.id = u"ayu/downloadSpeedBoost"_q,
+		.title = tr::ayu_DownloadSpeedBoostPC(),
+		.st = &st::settingsButtonNoIcon,
+		.label = rpl::combine(
+			settings->downloadSpeedBoostValue(),
+			tr::ayu_DownloadSpeedBoostOff(),
+			tr::ayu_DownloadSpeedBoostFast(),
+			tr::ayu_DownloadSpeedBoostUltra()
+		) | rpl::map([](
+				DownloadSpeedBoost boost,
+				const QString &off,
+				const QString &fast,
+				const QString &ultra) {
+			const auto labels = std::array{ off, fast, ultra };
+			return labels[static_cast<int>(boost)];
+		}),
+		.onClick = [=] {
+			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+				const auto options = std::vector{
+					tr::ayu_DownloadSpeedBoostOff(tr::now),
+					tr::ayu_DownloadSpeedBoostFast(tr::now),
+					tr::ayu_DownloadSpeedBoostUltra(tr::now),
+				};
+				SingleChoiceBox(box, {
+					.title = tr::ayu_DownloadSpeedBoostPC(),
+					.options = options,
+					.initialSelection = static_cast<int>(
+						settings->downloadSpeedBoost()),
+					.callback = [=](int index) {
+						settings->setDownloadSpeedBoost(
+							static_cast<DownloadSpeedBoost>(index));
+					},
+				});
+			}));
+		},
+	});
+	builder.addSkip();
+	builder.addDividerText(tr::ayu_DownloadSpeedBoostDescriptionPC());
+}
+
 void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 	auto *settings = &AyuSettings::getInstance();
 
@@ -272,6 +322,9 @@ void BuildQoLToggles(SectionBuilder &builder, AyuSectionBuilder &ayu) {
 
 	BuildShowPeerId(builder);
 
+	ayu.addSectionDivider();
+
+	BuildDownloadSpeedBoost(builder);
 	ayu.addSectionDivider();
 
 	builder.addSubsectionTitle(rpl::single(QString("Webview")));
