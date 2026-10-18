@@ -150,6 +150,9 @@ if win and 'NoDefaultCurrentDirectoryInExePath' in modifiedEnv:
     del modifiedEnv['NoDefaultCurrentDirectoryInExePath']
 
 modifiedEnv['PATH'] = environment['PATH_PREFIX'] + modifiedEnv['PATH']
+opensslJobs = os.environ.get(
+    'AYUGRAM_OPENSSL_JOBS',
+    os.environ.get('NUMBER_OF_PROCESSORS', '1'))
 
 def computeFileHash(path):
     sha1 = hashlib.sha1()
@@ -653,7 +656,7 @@ win64:
 winarm:
     perl Configure no-shared no-tests debug-VC-WIN64-ARM /FS
 win:
-    jom -j%NUMBER_OF_PROCESSORS% build_libs
+    jom -j""" + opensslJobs + """ build_libs
     mkdir out.dbg
     move libcrypto.lib out.dbg
     move libssl.lib out.dbg
@@ -669,7 +672,7 @@ win64_release:
 winarm_release:
     perl Configure no-shared no-tests VC-WIN64-ARM /FS /Gs4096
 win_release:
-    jom -j%NUMBER_OF_PROCESSORS% build_libs
+    jom -j""" + opensslJobs + """ build_libs
     mkdir out
     move libcrypto.lib out
     move libssl.lib out
