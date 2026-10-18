@@ -65,10 +65,10 @@ jobs:
   build:
     name: Windows ${{ matrix.arch }} portable
     needs: version
-    # The repository's existing Windows pipeline uses this 32-vCPU Depot
-    # runner. Dependency preparation builds large codec libraries twice
-    # (Debug and Release), so the standard hosted runner is impractical.
-    runs-on: depot-windows-latest-32
+    # Use a currently schedulable GitHub-hosted runner. Dependency
+    # preparation still builds large codec libraries twice (Debug and
+    # Release), so the larger hosted image is needed for a cold cache.
+    runs-on: windows-latest-8-cores
     timeout-minutes: 360
     strategy:
       fail-fast: false
