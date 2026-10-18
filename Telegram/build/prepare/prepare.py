@@ -656,14 +656,14 @@ win64:
 winarm:
     perl Configure no-shared no-tests debug-VC-WIN64-ARM /FS
 win:
-    jom -j""" + buildJobs + """ build_libs
+    nmake build_libs
     mkdir out.dbg
     move libcrypto.lib out.dbg
     move libssl.lib out.dbg
     move ossl_static.pdb out.dbg
 release:
     move out.dbg\\ossl_static.pdb out.dbg\\ossl_static
-    jom clean
+    nmake clean
     move out.dbg\\ossl_static out.dbg\\ossl_static.pdb
 win32_release:
     perl Configure no-shared no-tests VC-WIN32 /FS
@@ -672,7 +672,7 @@ win64_release:
 winarm_release:
     perl Configure no-shared no-tests VC-WIN64-ARM /FS /Gs4096
 win_release:
-    jom -j""" + buildJobs + """ build_libs
+    nmake build_libs
     mkdir out
     move libcrypto.lib out
     move libssl.lib out
