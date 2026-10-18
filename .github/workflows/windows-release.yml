@@ -49,8 +49,8 @@ jobs:
           title="Ayugram Desktop Base ${BASH_REMATCH[1]}"
           commit=$(git rev-parse HEAD)
           if [[ "$PUBLISH" == 'true' ]]; then
-            git fetch --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
-            if [[ "$(git rev-parse "$RELEASE_TAG^{commit}")" != "$commit" ]]; then
+            git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
+            if [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" != "$commit" ]]; then
               echo '::error::The release tag must point to the selected commit.'
               exit 1
             fi
