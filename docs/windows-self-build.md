@@ -4,6 +4,7 @@
 使用 GitHub 托管的 `windows-2022`、MSVC 14.44、Windows SDK 10.0.26100.0 和 Python 3.10，
 通过仓库现有的 `prepare/win.bat` 准备两种架构的依赖，再编译 Release。
 工具、各架构的库和 Qt 分开缓存；首次构建需要较长时间。
+依赖脚本使用 MSYS2 的 `diffutils`，并固定 NASM 3.01 以兼容仓库当前的 libvpx。
 
 ## 发布 Ayugram Desktop Base 20261018
 
