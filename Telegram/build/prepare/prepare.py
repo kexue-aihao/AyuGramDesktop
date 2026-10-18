@@ -1109,6 +1109,7 @@ win:
     SET CHERE_INVOKING=enabled_from_arguments
     SET MSYS2_PATH_TYPE=inherit
     SET "NUMBER_OF_PROCESSORS=""" + buildJobs + """
+    sed -i 's/tag_content MultiProcessorCompilation true/tag_content MultiProcessorCompilation false/' build/make/gen_msvs_vcxproj.sh
 
 win32:
     SET "TOOLCHAIN=x86-win32-vs17"
