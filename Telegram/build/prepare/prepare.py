@@ -150,8 +150,8 @@ if win and 'NoDefaultCurrentDirectoryInExePath' in modifiedEnv:
     del modifiedEnv['NoDefaultCurrentDirectoryInExePath']
 
 modifiedEnv['PATH'] = environment['PATH_PREFIX'] + modifiedEnv['PATH']
-opensslJobs = os.environ.get(
-    'AYUGRAM_OPENSSL_JOBS',
+buildJobs = os.environ.get(
+    'AYUGRAM_BUILD_JOBS',
     os.environ.get('NUMBER_OF_PROCESSORS', '1'))
 
 def computeFileHash(path):
@@ -656,7 +656,7 @@ win64:
 winarm:
     perl Configure no-shared no-tests debug-VC-WIN64-ARM /FS
 win:
-    jom -j""" + opensslJobs + """ build_libs
+    jom -j""" + buildJobs + """ build_libs
     mkdir out.dbg
     move libcrypto.lib out.dbg
     move libssl.lib out.dbg
@@ -672,7 +672,7 @@ win64_release:
 winarm_release:
     perl Configure no-shared no-tests VC-WIN64-ARM /FS /Gs4096
 win_release:
-    jom -j""" + opensslJobs + """ build_libs
+    jom -j""" + buildJobs + """ build_libs
     mkdir out
     move libcrypto.lib out
     move libssl.lib out
@@ -1108,6 +1108,7 @@ win:
     SET PATH=%THIRDPARTY_DIR%\\msys64\\usr\\bin;%PATH%
     SET CHERE_INVOKING=enabled_from_arguments
     SET MSYS2_PATH_TYPE=inherit
+    SET "NUMBER_OF_PROCESSORS=""" + buildJobs + """
 
 win32:
     SET "TOOLCHAIN=x86-win32-vs17"
@@ -1612,8 +1613,8 @@ win:
     rem jom -jN occasionally fails to create the shared mkspecs\\modules-inst
     rem directory due to a race in qmake's mkpath under parallel builds; the
     rem build is incremental, so simply retrying picks up where it stopped.
-    jom -j%NUMBER_OF_PROCESSORS% || jom -j%NUMBER_OF_PROCESSORS%
-    jom -j%NUMBER_OF_PROCESSORS% install
+    jom -j""" + buildJobs + """ || jom -j""" + buildJobs + """
+    jom -j""" + buildJobs + """ install
 """)
 else: # qt > '6'
     branch = 'v$QT' + ('-lts-lgpl' if qt.startswith('6.2.') else '')

@@ -145,7 +145,7 @@ jobs:
         id: prepare
         shell: cmd
         env:
-          AYUGRAM_OPENSSL_JOBS: '1'
+          AYUGRAM_BUILD_JOBS: '1'
         run: call src\Telegram\build\prepare\win.bat silent
       - name: Prune library build intermediates
         run: ./src/.github/scripts/prune_windows_libraries.ps1 -LibrariesPath '${{ matrix.libraries }}'
