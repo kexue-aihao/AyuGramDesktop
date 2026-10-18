@@ -65,7 +65,10 @@ jobs:
   build:
     name: Windows ${{ matrix.arch }} portable
     needs: version
-    runs-on: windows-2022
+    # The repository's existing Windows pipeline uses this 32-vCPU Depot
+    # runner. Dependency preparation builds large codec libraries twice
+    # (Debug and Release), so the standard hosted runner is impractical.
+    runs-on: depot-windows-latest-32
     timeout-minutes: 360
     strategy:
       fail-fast: false
@@ -200,7 +203,7 @@ jobs:
         env:
           _CL_: /MP2 /FS
         run: |
-          cmake --build src/out --config Release --target Telegram --parallel 2
+          cmake --build src/out --config Release --target Telegram --parallel
           if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
       - name: Package portable ZIP
         env:
