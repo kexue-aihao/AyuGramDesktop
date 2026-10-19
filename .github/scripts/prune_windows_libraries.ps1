@@ -15,6 +15,6 @@ Get-ChildItem -LiteralPath $libraries -File -Recurse | ForEach-Object {
     $relative = [System.IO.Path]::GetRelativePath($libraries, $_.FullName).Replace('\', '/')
     if ($_.Extension.ToLowerInvariant() -notin $extensions -and
         $relative -notmatch '(^|/)(include|objects-[^/]+|cache_keys|patches|nv-codec-headers)(/|$)') {
-        Remove-Item -LiteralPath $_.FullName
+        Remove-Item -LiteralPath $_.FullName -Force
     }
 }
