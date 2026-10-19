@@ -37,11 +37,8 @@ try {
         }
         $elapsed = (Get-Date) - $started
         $compilers = @(Get-Process -Name cl -ErrorAction SilentlyContinue)
-        $memory = Get-CimInstance Win32_OperatingSystem
-        $freeGiB = [Math]::Round($memory.FreePhysicalMemory / 1MB, 1)
-        $objects = @(Get-ChildItem -LiteralPath $build -Filter '*.obj' -File -Recurse -ErrorAction SilentlyContinue).Count
-        Write-Host ("Build heartbeat: {0}; objects: {1}; compiler processes: {2}; free RAM: {3} GiB" -f `
-            $elapsed.ToString('hh\:mm\:ss'), $objects, $compilers.Count, $freeGiB)
+        Write-Host ("Build heartbeat: {0}; compiler processes: {1}" -f `
+            $elapsed.ToString('hh\:mm\:ss'), $compilers.Count)
     } while (-not $finished)
     $process.WaitForExit()
     $exitCode = $process.ExitCode
