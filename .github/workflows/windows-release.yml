@@ -349,12 +349,7 @@ jobs:
           Source: https://github.com/$GH_REPO/commit/$RELEASE_COMMIT
           Build: https://github.com/$GH_REPO/actions/runs/$GITHUB_RUN_ID
           EOF
-          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
-            if [[ "$(jq -r .isDraft existing-release.json)" != 'true' ]]; then
-              echo '::error::This release is already published; existing assets will not be replaced.'
-              exit 1
-            fi
-          else
+          if ! gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
             gh release create "$RELEASE_TAG" --verify-tag --draft \
               --title "$RELEASE_TITLE" --notes-file release-notes.md
           fi
