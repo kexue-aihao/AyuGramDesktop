@@ -15,12 +15,16 @@ on:
         description: Publish the release after both builds succeed (tag must exist at this commit)
         default: false
         type: boolean
+      dependencies_only:
+        description: Prepare shared dependencies on dev without building the application
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 concurrency:
-  group: windows-release-${{ github.event.inputs.release_tag || github.ref_name }}
+  group: windows-release-${{ inputs.dependencies_only && github.ref_name || inputs.release_tag || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -39,7 +43,7 @@ jobs:
         shell: bash
         env:
           RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
-          PUBLISH: ${{ github.event_name == 'push' || inputs.publish }}
+          PUBLISH: ${{ !inputs.dependencies_only && (github.event_name == 'push' || inputs.publish) }}
         run: |
           set -euo pipefail
           if [[ ! "$RELEASE_TAG" =~ ^base-([0-9]{8})$ ]]; then
@@ -210,6 +214,7 @@ jobs:
             ${{ matrix.libraries }}/cache_keys/[qQ]t_*
           key: ${{ steps.qt.outputs.cache-primary-key }}
       - name: Configure Release
+        if: ${{ !inputs.dependencies_only }}
         working-directory: src/Telegram
         env:
           API_ID: ${{ secrets.TDESKTOP_API_ID }}
@@ -239,17 +244,22 @@ jobs:
           & ./configure.bat @arguments
           if ($LASTEXITCODE -ne 0) { throw "Configure failed: $LASTEXITCODE" }
       - name: Build Release
+        if: ${{ !inputs.dependencies_only }}
         env:
           _CL_: /MP${{ matrix.compiler_parallel }} /FS
         run: |
-          cmake --build src/out --config Release --target Telegram --parallel ${{ matrix.build_parallel }}
-          if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
+          ./src/.github/scripts/build_windows_with_heartbeat.ps1 `
+            -BuildPath "$env:GITHUB_WORKSPACE\src\out" `
+            -Parallel ${{ matrix.build_parallel }} `
+            -LogPath "$env:RUNNER_TEMP\build-${{ matrix.arch }}.log"
       - name: Package portable ZIP
+        if: ${{ !inputs.dependencies_only }}
         env:
           RELEASE_TAG: ${{ needs.version.outputs.tag }}
         run: |
           ./src/Telegram/build/package_windows.ps1 -Architecture '${{ matrix.arch }}' -ReleaseTag $env:RELEASE_TAG
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !inputs.dependencies_only }}
         with:
           name: windows-${{ matrix.arch }}-portable
           path: |
@@ -258,6 +268,17 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 14
+      - name: Upload build diagnostics
+        if: ${{ !cancelled() && !inputs.dependencies_only }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: windows-${{ matrix.arch }}-build-logs
+          path: |
+            ${{ runner.temp }}/build-${{ matrix.arch }}.log
+            ${{ runner.temp }}/build-${{ matrix.arch }}.log.stderr
+            ${{ runner.temp }}/prepare-${{ matrix.arch }}.log
+          if-no-files-found: ignore
+          retention-days: 7
 
   publish:
     needs: [version, build]

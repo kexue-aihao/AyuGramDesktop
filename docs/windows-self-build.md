@@ -2,9 +2,23 @@
 
 工作流：`.github/workflows/windows-release.yml`，支持 Windows x64 和 Windows x86。
 使用可调度的 `windows-2022`、MSVC 14.44、Windows SDK 10.0.26100.0 和 Python 3.10，
-通过仓库现有的 `prepare/win.bat` 准备两种架构的依赖，再编译 Release；依赖准备阶段使用 OpenSSL 官方的 `nmake` 串行目标、关闭 OpenSSL 的强制同步 PDB 写入，禁用 libvpx 工程内部的多处理器编译，并将 libvpx 和 Qt 的并行度限制为 1，避免标准 runner 上共享 PDB 或 MSYS2 Make 的并行编译挂起。
+通过仓库现有的 `prepare/win.bat` 准备两种架构的依赖，再编译 Release；依赖准备阶段使用 OpenSSL 官方的 `nmake` 串行目标、关闭 OpenSSL 的强制同步 PDB 写入，禁用 libvpx 工程内部的多处理器编译，并将依赖并行度限制为 2，避免标准 runner 上共享 PDB 或 MSYS2 Make 的并行编译挂起。
 工具、各架构的库和 Qt 分开缓存；首次构建需要较长时间。
+应用编译使用显式并行上限：x64 为 MSBuild 4、编译器 `/MP2`，x86 为 MSBuild 2、编译器 `/MP1`，避免无限并行导致内存耗尽。
+编译步骤每分钟输出新增编译日志、已生成的对象文件数、编译器进程数和剩余物理内存；完整日志保存在 Actions 的 `windows-<架构>-build-logs` 构件中，保留 7 天。
 依赖脚本使用 MSYS2 的 `diffutils`，并固定 NASM 3.01 以兼容仓库当前的 libvpx。
+
+## 跨版本复用依赖
+
+GitHub 缓存有分支和标签作用域。在发布标签下生成的缓存只供该标签复用；后续新标签可以读取默认分支 `dev` 的缓存。
+需要提前准备共享依赖时，在 Actions 手动选择 `dev`，开启 `dependencies_only`，保持 `publish` 关闭：
+
+```powershell
+gh workflow run windows-release.yml --ref dev -f dependencies_only=true -f publish=false
+```
+
+这次运行只准备并缓存依赖，跳过应用配置、编译、打包和发布。首次预热仍需要完整依赖编译；后续标签在依赖版本和缓存键匹配时直接恢复缓存。
+依赖缓存可能被 GitHub 清理，因此缓存未命中时仍会执行准备脚本。
 
 ## 发布 Ayugram Desktop Base 20261018
 
@@ -23,6 +37,7 @@ git push origin base-20261018
 
 - `release_tag`：默认 `base-20261018`。
 - `publish`：默认关闭，仅上传 Actions 构件；开启时，对应标签必须已经存在并指向所选提交。
+- `dependencies_only`：默认关闭；开启时仅准备依赖，用于在 `dev` 预热跨版本共享缓存，不发布 Release。
 - 重新运行失败的任务可以续传草稿 Release；已公开的 Release 不会被覆盖。
 
 ## API 配置
