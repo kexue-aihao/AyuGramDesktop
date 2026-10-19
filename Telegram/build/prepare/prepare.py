@@ -1092,7 +1092,8 @@ mac:
     cmake . \\
         -D CMAKE_OSX_ARCHITECTURES="x86_64;arm64" \\
         -D CMAKE_INSTALL_PREFIX:STRING=$USED_PREFIX \\
-        ${cmake_defines}
+        ${cmake_defines} \
+        -D JPEGXL_ENABLE_SKCMS=OFF
     cmake --build . --config MinSizeRel
     cmake --install . --config MinSizeRel
 """)
