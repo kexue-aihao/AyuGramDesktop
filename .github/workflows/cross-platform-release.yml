@@ -90,7 +90,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-jinja2
           cd Telegram/build/docker/centos_env
-          DEBUG= LTO= python3 gen_dockerfile.py > Dockerfile
+          DEBUG= LTO= python3 gen_dockerfile.py > Dockerfile.generated
       - name: Prepare Docker cache directories
         run: |
           mkdir -p '${{ runner.temp }}/buildx-cache'
@@ -101,6 +101,7 @@ jobs:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: Telegram/build/docker/centos_env
+          file: Telegram/build/docker/centos_env/Dockerfile.generated
           load: true
           tags: ${{ env.IMAGE_TAG }}
           cache-from: type=local,src=${{ runner.temp }}/buildx-cache
