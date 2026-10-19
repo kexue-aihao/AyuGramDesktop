@@ -21,7 +21,7 @@ permissions:
 
 concurrency:
   group: windows-release-${{ github.event.inputs.release_tag || github.ref_name }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   version:
@@ -147,12 +147,35 @@ jobs:
           key: windows-2022-${{ matrix.arch }}-qt-msvc1444-v1-${{ hashFiles('src/Telegram/build/prepare/**', 'src/Telegram/build/qt_version.py') }}
           restore-keys: |
             windows-2022-${{ matrix.arch }}-qt-msvc1444-v1-
+      - name: Report dependency cache status
+        run: |
+          $rows = @(
+            @{ Name = 'ThirdParty tools'; Hit = '${{ steps.tools.outputs.cache-hit }}' },
+            @{ Name = '${{ matrix.arch }} libraries'; Hit = '${{ steps.libraries.outputs.cache-hit }}' },
+            @{ Name = '${{ matrix.arch }} Qt'; Hit = '${{ steps.qt.outputs.cache-hit }}' }
+          )
+          $table = @(
+            '### Dependency cache status',
+            '',
+            '| Cache | Exact hit |',
+            '| --- | --- |'
+          )
+          foreach ($row in $rows) {
+            $hit = if ($row.Hit -eq 'true') { 'yes' } else { 'no (prepare/resume)' }
+            $table += "| $($row.Name) | $hit |"
+            Write-Host "$($row.Name): $hit"
+          }
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ($table -join "`n")
       - name: Prepare dependencies
         id: prepare
-        shell: cmd
+        if: steps.tools.outputs.cache-hit != 'true' || steps.libraries.outputs.cache-hit != 'true' || steps.qt.outputs.cache-hit != 'true'
         env:
           AYUGRAM_BUILD_JOBS: '1'
-        run: call src\Telegram\build\prepare\win.bat silent
+          PYTHONUNBUFFERED: '1'
+        run: |
+          ./src/.github/scripts/prepare_dependencies_with_heartbeat.ps1 `
+            -PreparePath "$env:GITHUB_WORKSPACE\src\Telegram\build\prepare\win.bat" `
+            -LogPath "$env:RUNNER_TEMP\prepare-${{ matrix.arch }}.log"
       - name: Prune library build intermediates
         run: ./src/.github/scripts/prune_windows_libraries.ps1 -LibrariesPath '${{ matrix.libraries }}'
       - name: Save third-party tools
