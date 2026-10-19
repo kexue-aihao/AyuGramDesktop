@@ -27,6 +27,7 @@ $readers = @($LogPath, $errorPath) | ForEach-Object {
     $stream = [System.IO.File]::Open($_, 'Open', 'Read', 'ReadWrite')
     [System.IO.StreamReader]::new($stream)
 }
+$processEnded = $false
 
 try {
     do {
@@ -42,11 +43,16 @@ try {
     } while (-not $finished)
     $process.WaitForExit()
     $exitCode = $process.ExitCode
+    $processEnded = $true
     foreach ($reader in $readers) {
         $output = $reader.ReadToEnd()
         if ($output) { Write-Host $output -NoNewline }
     }
 } finally {
+    if (-not $processEnded -and -not $process.HasExited) {
+        $process.Kill($true)
+        $process.WaitForExit()
+    }
     foreach ($reader in $readers) { $reader.Dispose() }
     $process.Dispose()
 }
