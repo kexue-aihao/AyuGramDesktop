@@ -15,7 +15,9 @@ $build = (Get-Item -LiteralPath $BuildPath).FullName
 $LogPath = [System.IO.Path]::GetFullPath($LogPath)
 $errorPath = "$LogPath.stderr"
 $started = Get-Date
-$process = Start-Process -FilePath (Get-Command cmake -CommandType Application).Source `
+$cmake = Get-Command cmake -CommandType Application | Select-Object -First 1
+if (-not $cmake) { throw 'cmake was not found on PATH.' }
+$process = Start-Process -FilePath $cmake.Source `
     -ArgumentList @('--build', "`"$build`"", '--config', 'Release', '--target', 'Telegram', '--parallel', $Parallel) `
     -RedirectStandardOutput $LogPath `
     -RedirectStandardError $errorPath `
