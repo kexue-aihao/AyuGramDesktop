@@ -122,6 +122,8 @@ jobs:
         with:
           path: ThirdParty
           key: windows-2022-tools-py310-v1-${{ hashFiles('src/Telegram/build/prepare/**') }}
+          restore-keys: |
+            windows-2022-tools-py310-v1-
       - name: Restore libraries
         id: libraries
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -132,6 +134,8 @@ jobs:
             !${{ matrix.libraries }}/[qQ]t_*
             !${{ matrix.libraries }}/cache_keys/[qQ]t_*
           key: windows-2022-${{ matrix.arch }}-libs-msvc1444-v1-${{ hashFiles('src/Telegram/build/prepare/**', 'src/Telegram/build/qt_version.py') }}
+          restore-keys: |
+            windows-2022-${{ matrix.arch }}-libs-msvc1444-v1-
       - name: Restore Qt
         id: qt
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -141,6 +145,8 @@ jobs:
             ${{ matrix.libraries }}/[qQ]t_*
             ${{ matrix.libraries }}/cache_keys/[qQ]t_*
           key: windows-2022-${{ matrix.arch }}-qt-msvc1444-v1-${{ hashFiles('src/Telegram/build/prepare/**', 'src/Telegram/build/qt_version.py') }}
+          restore-keys: |
+            windows-2022-${{ matrix.arch }}-qt-msvc1444-v1-
       - name: Prepare dependencies
         id: prepare
         shell: cmd
@@ -194,6 +200,8 @@ jobs:
             "-DTDESKTOP_API_HASH=$env:API_HASH",
             '-DCMAKE_CONFIGURATION_TYPES=Release',
             '-DCMAKE_MSVC_DEBUG_INFORMATION_FORMAT=Embedded',
+            '-DCMAKE_C_FLAGS=/utf-8',
+            '-DCMAKE_CXX_FLAGS=/utf-8',
             '-DDESKTOP_APP_SPECIAL_TARGET=${{ matrix.target }}',
             '-DDESKTOP_APP_ENABLE_LTO=OFF',
             '-DDESKTOP_APP_DISABLE_AUTOUPDATE=ON',
