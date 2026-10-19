@@ -1,0 +1,314 @@
+name: Cross-platform self-build release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag (base-YYYYMMDD)
+        required: true
+        default: base-20261018
+        type: string
+      publish:
+        description: Publish the built archives to the selected GitHub Release
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cross-platform-release-${{ inputs.release_tag || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      title: ${{ steps.version.outputs.title }}
+      commit: ${{ steps.version.outputs.commit }}
+      base: ${{ steps.version.outputs.base }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Resolve release version
+        id: version
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^base-([0-9]{8})$ ]]; then
+            echo '::error::Release tag must use base-YYYYMMDD.'
+            exit 1
+          fi
+          title="Ayugram Desktop Base ${BASH_REMATCH[1]}"
+          commit=$(git rev-parse HEAD)
+          if [[ "$PUBLISH" == 'true' ]]; then
+            git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
+            if [[ "$(git rev-parse 'FETCH_HEAD^{commit}')" != "$commit" ]]; then
+              echo '::error::The release tag must point to the selected commit.'
+              exit 1
+            fi
+          fi
+          base=$(awk '$1 == "AppVersionStr" { print $2 }' Telegram/build/version)
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
+
+  linux:
+    name: Linux x64 portable
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    env:
+      API_ID: ${{ secrets.TDESKTOP_API_ID || '2040' }}
+      API_HASH: ${{ secrets.TDESKTOP_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+      IMAGE_TAG: tdesktop:ayugram-release
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.version.outputs.commit }}
+          submodules: true
+      - name: Initialize required nested submodules
+        run: git -C cmake submodule update --init --recursive --depth=1
+      - name: Set up Docker buildx
+        id: buildx
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e
+      - name: Restore Docker dependency cache
+        id: cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/buildx-cache
+          key: linux-release-dependencies-${{ hashFiles('Telegram/build/docker/centos_env/**') }}
+          restore-keys: linux-release-dependencies-
+      - name: Generate Docker build image
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-jinja2
+          cd Telegram/build/docker/centos_env
+          DEBUG= LTO= python3 gen_dockerfile.py > Dockerfile
+      - name: Prepare Docker cache directories
+        run: |
+          mkdir -p '${{ runner.temp }}/buildx-cache'
+          rm -rf '${{ runner.temp }}/buildx-cache-new'
+      - name: Build dependency image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: Telegram/build/docker/centos_env
+          load: true
+          tags: ${{ env.IMAGE_TAG }}
+          cache-from: type=local,src=${{ runner.temp }}/buildx-cache
+          cache-to: type=local,dest=${{ runner.temp }}/buildx-cache-new,mode=max
+      - name: Save Docker dependency cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          rm -rf '${{ runner.temp }}/buildx-cache'
+          mv '${{ runner.temp }}/buildx-cache-new' '${{ runner.temp }}/buildx-cache'
+      - name: Persist Docker dependency cache
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ${{ runner.temp }}/buildx-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+      - name: Generate local packer keys
+        run: |
+          mkdir -p ../DesktopPrivate
+          random_key() {
+            printf -- '-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----\n' \
+              "$(head -c 96 /dev/urandom | base64 | tr -d '\n')"
+          }
+          printf 'const char *PrivateKey = "%s";\nconst char *PrivateBetaKey = "%s";\n' \
+            "$(random_key)" "$(random_key)" > ../DesktopPrivate/packer_private.h
+          printf 'static const char *AlphaPrivateKey = "%s";\n' \
+            "$(random_key)" > ../DesktopPrivate/alpha_private.h
+      - name: Build Linux release
+        run: |
+          docker run --rm \
+            -u "$(id -u):$(id -g)" \
+            -v "$PWD:/usr/src/tdesktop" \
+            -v "$PWD/../DesktopPrivate:/usr/src/DesktopPrivate" \
+            -e CONFIG=Release \
+            -e KEEP_GOING=1 \
+            "$IMAGE_TAG" \
+            /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
+            -D CMAKE_CONFIGURATION_TYPES=Release \
+            -D DESKTOP_APP_ENABLE_LTO=OFF \
+            -D TDESKTOP_API_ID="$API_ID" \
+            -D TDESKTOP_API_HASH="$API_HASH" \
+            -D DESKTOP_APP_SPECIAL_TARGET=linux \
+            -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+            -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+      - name: Package Linux archive
+        run: |
+          mkdir -p dist
+          version="${{ needs.version.outputs.tag }}"
+          archive="Ayugram-Desktop-Base-${version#base-}-Linux-x64.tar.xz"
+          test -x out/Release/AyuGram
+          tar -cJf "dist/$archive" -C out/Release AyuGram
+          (cd dist && sha256sum "$archive" > "$archive.sha256")
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cross-platform-linux-x64
+          path: dist/*
+          compression-level: 0
+          retention-days: 14
+
+  macos:
+    name: macOS ${{ matrix.arch }} portable
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    env:
+      API_ID: ${{ secrets.TDESKTOP_API_ID || '2040' }}
+      API_HASH: ${{ secrets.TDESKTOP_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ needs.version.outputs.commit }}
+          submodules: true
+      - name: Restore macOS dependencies
+        id: cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: macos-${{ matrix.arch }}-release-dependencies-${{ hashFiles('Telegram/build/prepare/**', 'Telegram/build/qt_version.py') }}
+          restore-keys: macos-${{ matrix.arch }}-release-dependencies-
+      - name: Install macOS build tools
+        run: brew install automake libtool meson nasm ninja pkg-config
+      - name: Prepare macOS dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: ./Telegram/build/prepare/mac.sh silent
+      - name: Save macOS dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: |
+            Libraries
+            ThirdParty
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+      - name: Generate local packer keys
+        run: |
+          mkdir -p ../DesktopPrivate
+          random_key() {
+            printf -- '-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----\n' \
+              "$(head -c 96 /dev/urandom | base64 | tr -d '\n')"
+          }
+          printf 'const char *PrivateKey = "%s";\nconst char *PrivateBetaKey = "%s";\n' \
+            "$(random_key)" "$(random_key)" > ../DesktopPrivate/packer_private.h
+          printf 'static const char *AlphaPrivateKey = "%s";\n' \
+            "$(random_key)" > ../DesktopPrivate/alpha_private.h
+      - name: Build macOS release
+        working-directory: Telegram
+        run: |
+          ./configure.sh \
+            -D CMAKE_CONFIGURATION_TYPES=Release \
+            -D CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -D DESKTOP_APP_MAC_ARCH=${{ matrix.arch }} \
+            -D TDESKTOP_API_ID="$API_ID" \
+            -D TDESKTOP_API_HASH="$API_HASH" \
+            -D DESKTOP_APP_SPECIAL_TARGET=mac \
+            -D DESKTOP_APP_ENABLE_LTO=OFF \
+            -D DESKTOP_APP_DISABLE_AUTOUPDATE=ON \
+            -D DESKTOP_APP_DISABLE_CRASH_REPORTS=ON
+          cmake --build ../out --config Release --parallel
+      - name: Package macOS archive
+        run: |
+          mkdir -p dist
+          version="${{ needs.version.outputs.tag }}"
+          archive="Ayugram-Desktop-Base-${version#base-}-macOS-${{ matrix.arch }}.zip"
+          installer="Ayugram-Desktop-Base-${version#base-}-macOS-${{ matrix.arch }}.dmg"
+          test -d out/Release/AyuGram.app
+          ditto -c -k --keepParent out/Release/AyuGram.app "dist/$archive"
+          hdiutil create -volname 'AyuGram Desktop' \
+            -srcfolder out/Release/AyuGram.app \
+            -ov -format UDZO "dist/$installer"
+          (cd dist && shasum -a 256 "$archive" > "$archive.sha256")
+          (cd dist && shasum -a 256 "$installer" > "$installer.sha256")
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cross-platform-macos-${{ matrix.arch }}
+          path: dist/*
+          compression-level: 0
+          retention-days: 14
+
+  publish:
+    needs: [version, linux, macos]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: cross-platform-*
+          path: dist
+          merge-multiple: true
+      - name: Verify and publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+          RELEASE_TITLE: ${{ needs.version.outputs.title }}
+          RELEASE_COMMIT: ${{ needs.version.outputs.commit }}
+          BASE_VERSION: ${{ needs.version.outputs.base }}
+        run: |
+          set -euo pipefail
+          cd dist
+          shopt -s nullglob
+          archives=(*.tar.xz *.zip *.dmg)
+          test "${#archives[@]}" -eq 5
+          for archive in "${archives[@]}"; do
+            checksum="${archive}.sha256"
+            test -s "$archive"
+            test -s "$checksum"
+            if [[ "$archive" == *.tar.xz ]]; then
+              sha256sum --check "$checksum"
+              tar -tJf "$archive" >/dev/null
+            elif [[ "$archive" == *.zip ]]; then
+              sha256sum --check "$checksum"
+              unzip -t "$archive" >/dev/null
+            else
+              sha256sum --check "$checksum"
+            fi
+          done
+          cat ./*.sha256 > SHA256SUMS-cross-platform.txt
+          cat > release-notes.md <<EOF
+          Linux x64 and macOS x86_64/arm64 self-built packages, based on AyuGram Desktop $BASE_VERSION.
+
+          - Linux: extract the tar.xz archive and run AyuGram.
+          - macOS: open the DMG installer or extract the portable ZIP.
+          - This workflow does not sign or notarize binaries and disables automatic updates.
+          - SHA-256 values are in SHA256SUMS-cross-platform.txt.
+
+          Source: https://github.com/$GITHUB_REPOSITORY/commit/$RELEASE_COMMIT
+          Build: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
+          EOF
+          release_draft=false
+          if gh release view "$RELEASE_TAG" --json isDraft > existing-release.json 2>/dev/null; then
+            release_draft=$(jq -r .isDraft existing-release.json)
+          else
+            gh release create "$RELEASE_TAG" --verify-tag --draft \
+              --title "$RELEASE_TITLE" --notes-file release-notes.md
+            release_draft=true
+          fi
+          gh release upload "$RELEASE_TAG" ./*.tar.xz ./*.zip ./*.dmg SHA256SUMS-cross-platform.txt --clobber
+          if [[ "$release_draft" == 'true' ]]; then
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TITLE" \
+              --notes-file release-notes.md --draft=false --latest
+          fi

@@ -67,7 +67,7 @@ jobs:
           echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
 
   build:
-    name: Windows ${{ matrix.arch }} portable
+    name: Windows ${{ matrix.arch }} packages
     needs: version
     # Larger hosted runner labels require a paid runner allocation in this
     # repository and stay queued indefinitely. This image is schedulable.
@@ -126,6 +126,18 @@ jobs:
           cmake --version
           python --version
           7z i
+      - name: Check Inno Setup
+        if: ${{ !inputs.dependencies_only }}
+        run: |
+          $candidates = @(
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 6/ISCC.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 5/ISCC.exe'),
+            (Join-Path $env:ProgramFiles 'Inno Setup 5/ISCC.exe')
+          )
+          if (-not ($candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })) {
+            throw 'Inno Setup compiler (ISCC.exe) is not installed on this runner.'
+          }
       - name: Restore third-party tools
         id: tools
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -258,12 +270,19 @@ jobs:
           RELEASE_TAG: ${{ needs.version.outputs.tag }}
         run: |
           ./src/Telegram/build/package_windows.ps1 -Architecture '${{ matrix.arch }}' -ReleaseTag $env:RELEASE_TAG
+      - name: Package official installer
+        if: ${{ !inputs.dependencies_only }}
+        env:
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          ./src/Telegram/build/package_windows_installer.ps1 -Architecture '${{ matrix.arch }}' -ReleaseTag $env:RELEASE_TAG
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: ${{ !inputs.dependencies_only }}
         with:
-          name: windows-${{ matrix.arch }}-portable
+          name: windows-${{ matrix.arch }}-packages
           path: |
             dist/*.zip
+            dist/*-setup.exe
             dist/*.sha256
           if-no-files-found: error
           compression-level: 0
@@ -289,7 +308,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: windows-*-portable
+          pattern: windows-*-packages
           path: dist
           merge-multiple: true
       - name: Verify and publish release
@@ -306,16 +325,22 @@ jobs:
           cd dist
           for arch in x64 x86; do
             asset="Ayugram-Desktop-Base-${RELEASE_TAG#base-}-Windows-$arch.zip"
+            setup="Ayugram-Desktop-Base-${RELEASE_TAG#base-}-Windows-$arch-setup.exe"
             test -s "$asset"
             test -s "$asset.sha256"
             sha256sum --check "$asset.sha256"
             unzip -t "$asset"
+            test -s "$setup"
+            test -s "$setup.sha256"
+            sha256sum --check "$setup.sha256"
+            7z t "$setup"
           done
           cat ./*.sha256 > SHA256SUMS.txt
           cat > release-notes.md <<EOF
-          Windows x64 / x86 自构建便携版，基于 AyuGram Desktop $BASE_VERSION。
+          Windows x64 / x86 自构建安装包和便携版，基于 AyuGram Desktop $BASE_VERSION。
 
-          - 解压对应架构的 ZIP，运行 AyuGram.exe。
+          - 安装包采用 Telegram 官方使用的 Inno Setup 形式。
+          - 可运行对应架构的 setup.exe 安装，或解压 ZIP 使用便携版。
           - 下载加速位于 AyuGram → General → Downloads → Download Acceleration，提供 Off / Fast / Ultra 三档。
           - TelegramForcePortable 目录将账号数据保存在程序旁边；移动或删除压缩包解压目录前请备份该目录。
           - 此自构建版本未进行代码签名，关闭自动更新；后续版本请从本仓库 Releases 获取。
@@ -333,6 +358,6 @@ jobs:
             gh release create "$RELEASE_TAG" --verify-tag --draft \
               --title "$RELEASE_TITLE" --notes-file release-notes.md
           fi
-          gh release upload "$RELEASE_TAG" ./*.zip SHA256SUMS.txt --clobber
+          gh release upload "$RELEASE_TAG" ./*.zip ./*-setup.exe SHA256SUMS.txt --clobber
           gh release edit "$RELEASE_TAG" --title "$RELEASE_TITLE" \
             --notes-file release-notes.md --draft=false --latest

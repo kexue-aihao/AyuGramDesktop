@@ -85,7 +85,7 @@ public:
 	~Reader();
 
 private:
-	static constexpr auto kLoadFromRemoteMax = 8;
+	static constexpr auto kLoadFromRemoteMax = 32;
 
 	struct CacheHelper;
 
@@ -135,7 +135,10 @@ private:
 
 		void processCacheData(PartsMap &&data);
 		void addPart(uint32 offset, QByteArray bytes);
-		PrepareFillResult prepareFill(uint32 from, uint32 till);
+		PrepareFillResult prepareFill(
+			uint32 from,
+			uint32 till,
+			int preloadPartsAhead);
 
 		// Get up to kLoadFromRemoteMax not loaded parts in from-till range.
 		StackIntVector<kLoadFromRemoteMax> offsetsFromLoader(
@@ -166,7 +169,10 @@ private:
 		void processCachedSizes(const std::vector<int> &sizes);
 		void processPart(uint32 offset, QByteArray &&bytes);
 
-		[[nodiscard]] FillResult fill(uint32 offset, bytes::span buffer);
+		[[nodiscard]] FillResult fill(
+			uint32 offset,
+			bytes::span buffer,
+			int preloadPartsAhead);
 		[[nodiscard]] SerializedSlice unloadToCache();
 
 		[[nodiscard]] QByteArray partForDownloader(uint32 offset) const;
@@ -193,7 +199,8 @@ private:
 		[[nodiscard]] bool computeIsGoodHeader() const;
 		[[nodiscard]] FillResult fillFromHeader(
 			uint32 offset,
-			bytes::span buffer);
+			bytes::span buffer,
+			int preloadPartsAhead);
 		void unloadSlice(Slice &slice) const;
 		void checkSliceFullLoaded(int sliceNumber);
 		[[nodiscard]] bool checkFullInCache() const;
@@ -251,6 +258,7 @@ private:
 	std::atomic<crl::semaphore*> _sleeping = nullptr;
 	std::atomic<bool> _stopStreamingAsync = false;
 	std::atomic<int> _downloaderRequestsLimit = 4;
+	std::atomic<int> _streamingPreloadPartsAhead = 8;
 	PriorityQueue _loadingOffsets;
 
 	Slices _slices;

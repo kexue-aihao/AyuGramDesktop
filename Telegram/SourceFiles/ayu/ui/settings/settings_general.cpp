@@ -25,6 +25,7 @@
 #include "window/window_controller.h"
 #include "window/window_session_controller.h"
 
+#include <algorithm>
 #include <array>
 
 #include "styles/style_menu_icons.h"
@@ -160,44 +161,24 @@ void BuildShowPeerId(SectionBuilder &builder) {
 
 void BuildDownloadSpeedBoost(SectionBuilder &builder) {
 	const auto settings = &AyuSettings::getInstance();
-	const auto controller = builder.controller();
 
 	builder.addSubsectionTitle(tr::lng_downloads_section());
-	builder.addButton({
+	const auto labels = std::array{
+		tr::ayu_DownloadSpeedBoostOff(tr::now),
+		tr::ayu_DownloadSpeedBoostFast(tr::now),
+		tr::ayu_DownloadSpeedBoostUltra(tr::now),
+	};
+	AyuSectionBuilder(builder).addSlider({
 		.id = u"ayu/downloadSpeedBoost"_q,
 		.title = tr::ayu_DownloadSpeedBoostPC(),
-		.st = &st::settingsButtonNoIcon,
-		.label = rpl::combine(
-			settings->downloadSpeedBoostValue(),
-			tr::ayu_DownloadSpeedBoostOff(),
-			tr::ayu_DownloadSpeedBoostFast(),
-			tr::ayu_DownloadSpeedBoostUltra()
-		) | rpl::map([](
-				DownloadSpeedBoost boost,
-				const QString &off,
-				const QString &fast,
-				const QString &ultra) {
-			const auto labels = std::array{ off, fast, ultra };
-			return labels[static_cast<int>(boost)];
-		}),
-		.onClick = [=] {
-			controller->show(Box([=](not_null<Ui::GenericBox*> box) {
-				const auto options = std::vector{
-					tr::ayu_DownloadSpeedBoostOff(tr::now),
-					tr::ayu_DownloadSpeedBoostFast(tr::now),
-					tr::ayu_DownloadSpeedBoostUltra(tr::now),
-				};
-				SingleChoiceBox(box, {
-					.title = tr::ayu_DownloadSpeedBoostPC(),
-					.options = options,
-					.initialSelection = static_cast<int>(
-						settings->downloadSpeedBoost()),
-					.callback = [=](int index) {
-						settings->setDownloadSpeedBoost(
-							static_cast<DownloadSpeedBoost>(index));
-					},
-				});
-			}));
+		.steps = 3,
+		.current = static_cast<int>(settings->downloadSpeedBoost()),
+		.onFinalChanged = [=](int value) {
+			settings->setDownloadSpeedBoost(
+				static_cast<DownloadSpeedBoost>(value));
+		},
+		.formatLabel = [labels](int value) {
+			return labels[std::clamp(value, 0, int(labels.size()) - 1)];
 		},
 	});
 	builder.addSkip();

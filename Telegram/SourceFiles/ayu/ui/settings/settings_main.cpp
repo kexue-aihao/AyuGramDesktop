@@ -9,6 +9,7 @@
 #include "settings/sections/settings_main.h"
 #include "lang_auto.h"
 #include "ayu/ayu_settings.h"
+#include "ayu/ayu_version.h"
 #include "ayu/ui/ayu_logo.h"
 #include "ayu/ui/settings/settings_appearance.h"
 #include "ayu/ui/settings/settings_ayu.h"
@@ -16,7 +17,7 @@
 #include "ayu/ui/settings/settings_filters.h"
 #include "ayu/ui/settings/settings_general.h"
 #include "ayu/ui/settings/settings_other.h"
-#include "core/version.h"
+#include "base/weak_ptr.h"
 #include "settings/settings_builder.h"
 #include "settings/settings_common.h"
 #include "styles/style_ayu_settings.h"
@@ -31,6 +32,14 @@
 #include "window/window_session_controller_link_info.h"
 
 #include <QDesktopServices>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QUrl>
+
+#include <memory>
 
 namespace Settings {
 
@@ -69,12 +78,91 @@ void BuildVersionInfo(SectionBuilder &builder) {
 		return {
 			.widget = object_ptr<Ui::FlatLabel>(
 				ctx.container,
-				rpl::single(
-					QString("AyuGram Desktop v")
-					+ QString::fromLatin1(AppVersionStr)),
+				rpl::single(QString::fromLatin1(Ayu::kVersion)),
 				st::boxTitle),
 			.align = style::al_top,
 		};
+	});
+
+	builder.addSkip();
+
+	const auto controller = builder.controller();
+	const auto weak = base::make_weak(controller);
+	const auto manager = std::make_shared<QNetworkAccessManager>();
+	builder.addButton({
+		.id = u"ayu/checkUpdates"_q,
+		.title = tr::ayu_CheckForUpdates(),
+		.st = &st::settingsButtonNoIcon,
+		.onClick = [=] {
+			if (!weak) {
+				return;
+			}
+			weak->showToast(tr::ayu_UpdateChecking());
+
+			auto request = QNetworkRequest(QUrl(
+				u"https://api.github.com/repos/"_q
+				+ QString::fromLatin1(Ayu::kReleaseRepository)
+				+ u"/releases/latest"_q));
+			request.setHeader(
+				QNetworkRequest::UserAgentHeader,
+				u"AyuGramDesktop/"_q + QString::fromLatin1(Ayu::kReleaseTag));
+			request.setAttribute(
+				QNetworkRequest::RedirectPolicyAttribute,
+				QNetworkRequest::NoLessSafeRedirectPolicy);
+			request.setTransferTimeout(15 * 1000);
+
+			const auto reply = manager->get(request);
+			QObject::connect(reply, &QNetworkReply::finished, manager.get(),
+				[=] {
+					const auto status = reply->attribute(
+						QNetworkRequest::HttpStatusCodeAttribute).toInt();
+					if (reply->error() != QNetworkReply::NoError
+						|| status < 200
+						|| status >= 300) {
+						if (weak) {
+							weak->showToast(tr::ayu_UpdateCheckFailed());
+						}
+						reply->deleteLater();
+						return;
+					}
+
+					auto error = QJsonParseError{};
+					const auto document = QJsonDocument::fromJson(
+						reply->readAll(), &error);
+					const auto object = document.object();
+					const auto tag = object.value(u"tag_name"_q).toString();
+					const auto url = object.value(u"html_url"_q).toString();
+					if (error.error != QJsonParseError::NoError
+						|| !document.isObject()
+						|| tag.isEmpty()
+						|| url.isEmpty()) {
+						if (weak) {
+							weak->showToast(tr::ayu_UpdateCheckFailed());
+						}
+						reply->deleteLater();
+						return;
+					}
+
+					const auto currentNumber = QString::fromLatin1(
+						Ayu::kReleaseTag).section('-', -1).toLongLong();
+					const auto remoteNumber = tag.section('-', -1).toLongLong();
+					const auto updateAvailable = (currentNumber > 0
+						&& remoteNumber > 0)
+						? (remoteNumber > currentNumber)
+						: (tag != QString::fromLatin1(Ayu::kReleaseTag));
+					if (!updateAvailable) {
+						if (weak) {
+							weak->showToast(tr::ayu_UpdateLatest());
+						}
+					} else {
+						if (weak) {
+							weak->showToast(u"发现新版本："_q + tag);
+						}
+						QDesktopServices::openUrl(QUrl(url));
+					}
+					reply->deleteLater();
+				});
+		},
 	});
 
 	builder.addSkip();

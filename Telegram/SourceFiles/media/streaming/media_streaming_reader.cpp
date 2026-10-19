@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "media/streaming/media_streaming_reader.h"
 
+#include "ayu/ayu_settings.h"
 #include "media/streaming/media_streaming_common.h"
 #include "media/streaming/media_streaming_loader.h"
 #include "storage/cache/storage_cache_database.h"
@@ -23,8 +24,21 @@ constexpr auto kMaxOnlyInHeader = 80 * kPartSize;
 constexpr auto kPartsOutsideFirstSliceGood = 8;
 constexpr auto kSlicesInMemory = 2;
 
-// 1 MB of parts are requested from cloud ahead of reading demand.
-constexpr auto kPreloadPartsAhead = 8;
+constexpr auto kDefaultPreloadPartsAhead = 8;
+constexpr auto kFastPreloadPartsAhead = 16;
+constexpr auto kUltraPreloadPartsAhead = 32;
+
+int StreamingPreloadPartsAhead(DownloadSpeedBoost boost) {
+	switch (boost) {
+	case DownloadSpeedBoost::Off:
+		return kDefaultPreloadPartsAhead;
+	case DownloadSpeedBoost::Fast:
+		return kFastPreloadPartsAhead;
+	case DownloadSpeedBoost::Ultra:
+		return kUltraPreloadPartsAhead;
+	}
+	Unexpected("Invalid download speed boost.");
+}
 
 using PartsMap = base::flat_map<uint32, QByteArray>;
 
@@ -269,13 +283,14 @@ void Reader::Slice::addPart(uint32 offset, QByteArray bytes) {
 
 auto Reader::Slice::prepareFill(
 		uint32 from,
-		uint32 till) -> PrepareFillResult {
+		uint32 till,
+		int preloadPartsAhead) -> PrepareFillResult {
 	auto result = PrepareFillResult();
 
 	result.ready = false;
 	const auto fromOffset = (from / kPartSize) * kPartSize;
 	const auto tillPart = (till + kPartSize - 1) / kPartSize;
-	const auto preloadTillOffset = (tillPart + kPreloadPartsAhead)
+	const auto preloadTillOffset = (tillPart + preloadPartsAhead)
 		* kPartSize;
 
 	const auto after = ranges::upper_bound(
@@ -547,7 +562,10 @@ void Reader::Slices::processPart(
 	checkSliceFullLoaded(index + 1);
 }
 
-auto Reader::Slices::fill(uint32 offset, bytes::span buffer) -> FillResult {
+auto Reader::Slices::fill(
+		uint32 offset,
+		bytes::span buffer,
+		int preloadPartsAhead) -> FillResult {
 	Expects(!buffer.empty());
 	Expects(offset < _size);
 	Expects(offset + buffer.size() <= _size);
@@ -561,7 +579,7 @@ auto Reader::Slices::fill(uint32 offset, bytes::span buffer) -> FillResult {
 		Assert(waitingForHeaderCache());
 		return {};
 	} else if (isFullInHeader()) {
-		return fillFromHeader(offset, buffer);
+		return fillFromHeader(offset, buffer, preloadPartsAhead);
 	}
 
 	auto result = FillResult();
@@ -615,9 +633,15 @@ auto Reader::Slices::fill(uint32 offset, bytes::span buffer) -> FillResult {
 	const auto secondTill = (till > (fromSlice + 1) * kInSlice)
 		? (till - (fromSlice + 1) * kInSlice)
 		: 0;
-	const auto first = _data[fromSlice].prepareFill(firstFrom, firstTill);
+	const auto first = _data[fromSlice].prepareFill(
+		firstFrom,
+		firstTill,
+		preloadPartsAhead);
 	const auto second = (fromSlice + 1 < tillSlice)
-		? _data[fromSlice + 1].prepareFill(secondFrom, secondTill)
+		? _data[fromSlice + 1].prepareFill(
+			secondFrom,
+			secondTill,
+			preloadPartsAhead)
 		: Slice::PrepareFillResult();
 	handlePrepareResult(fromSlice, first);
 	if (fromSlice + 1 < tillSlice) {
@@ -649,13 +673,19 @@ auto Reader::Slices::fill(uint32 offset, bytes::span buffer) -> FillResult {
 	return result;
 }
 
-auto Reader::Slices::fillFromHeader(uint32 offset, bytes::span buffer)
+auto Reader::Slices::fillFromHeader(
+		uint32 offset,
+		bytes::span buffer,
+		int preloadPartsAhead)
 -> FillResult {
 	auto result = FillResult();
 	const auto from = offset;
 	const auto till = uint32(offset + buffer.size());
 
-	const auto prepared = _header.prepareFill(from, till);
+	const auto prepared = _header.prepareFill(
+		from,
+		till,
+		preloadPartsAhead);
 	for (const auto full : prepared.offsetsFromLoader.values()) {
 		if (full < _size) {
 			result.offsetsFromLoader.add(full);
@@ -911,6 +941,8 @@ void Reader::tryRemoveLoaderAsync() {
 
 void Reader::startStreaming() {
 	_streamingActive = true;
+	_streamingPreloadPartsAhead = StreamingPreloadPartsAhead(
+		AyuSettings::getInstance().downloadSpeedBoost());
 	refreshLoaderPriority();
 }
 
@@ -1286,7 +1318,10 @@ Reader::FillState Reader::fill(
 Reader::FillState Reader::fillFromSlices(uint32 offset, bytes::span buffer) {
 	using namespace rpl::mappers;
 
-	auto result = _slices.fill(offset, buffer);
+	auto result = _slices.fill(
+		offset,
+		buffer,
+		_streamingPreloadPartsAhead.load(std::memory_order_relaxed));
 	if (result.state != FillState::Success && _slices.headerWontBeFilled()) {
 		_streamingError = Error::NotStreamable;
 		return FillState::Failed;

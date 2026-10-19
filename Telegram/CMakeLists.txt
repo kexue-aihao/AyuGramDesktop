@@ -116,6 +116,7 @@ set(ayugram_files
         ayu/ayu_state.h
         ayu/ayu_settings.cpp
         ayu/ayu_settings.h
+        ayu/ayu_version.h
         ayu/ayu_lang.cpp
         ayu/ayu_lang.h
         ayu/ayu_infra.cpp

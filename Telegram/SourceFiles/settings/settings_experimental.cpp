@@ -65,6 +65,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include <QtCore/QJsonDocument>
 #include <QtGui/QGuiApplication>
 
+#include <array>
+
 // AyuGram includes
 #include "ayu/ui/settings/settings_main.h"
 #include "settings/settings_builder.h"
@@ -166,6 +168,245 @@ struct ResolvedReferrer {
 	return QString();
 }
 
+struct OptionTranslation {
+	const char *id;
+	const tr::phrase<> *name;
+	const tr::phrase<> *description;
+};
+
+[[nodiscard]] const auto &OptionTranslations() {
+	static const auto result = std::array{
+		OptionTranslation{
+			"dialogs-mute-icon",
+			&tr::lng_settings_experimental_option_dialogs_mute_icon,
+			&tr::lng_settings_experimental_option_dialogs_mute_icon_about,
+		},
+		OptionTranslation{
+			"forum-hide-chats-list",
+			&tr::lng_settings_experimental_option_forum_hide_chats_list,
+			&tr::lng_settings_experimental_option_forum_hide_chats_list_about,
+		},
+		OptionTranslation{
+			"dialogs-unread-on-top",
+			&tr::lng_settings_experimental_option_dialogs_unread_on_top,
+			&tr::lng_settings_experimental_option_dialogs_unread_on_top_about,
+		},
+		OptionTranslation{
+			"use-new-chat-view",
+			&tr::lng_settings_experimental_option_use_new_chat_view,
+			&tr::lng_settings_experimental_option_use_new_chat_view_about,
+		},
+		OptionTranslation{
+			"auto-scroll-inactive-chat",
+			&tr::lng_settings_experimental_option_auto_scroll_inactive_chat,
+			&tr::lng_settings_experimental_option_auto_scroll_inactive_chat_about,
+		},
+		OptionTranslation{
+			"moderate-common-groups",
+			&tr::lng_settings_experimental_option_moderate_common_groups,
+			nullptr,
+		},
+		OptionTranslation{
+			"classic-profile-scroll",
+			&tr::lng_settings_experimental_option_classic_profile_scroll,
+			&tr::lng_settings_experimental_option_classic_profile_scroll_about,
+		},
+		OptionTranslation{
+			"use-small-msg-bubble-radius",
+			&tr::lng_settings_experimental_option_use_small_msg_bubble_radius,
+			&tr::lng_settings_experimental_option_use_small_msg_bubble_radius_about,
+		},
+		OptionTranslation{
+			"unlimited-message-width",
+			&tr::lng_settings_experimental_option_unlimited_message_width,
+			&tr::lng_settings_experimental_option_unlimited_message_width_about,
+		},
+		OptionTranslation{
+			"mac-cmd-reply-immediately",
+			&tr::lng_settings_experimental_option_mac_cmd_reply_immediately,
+			&tr::lng_settings_experimental_option_mac_cmd_reply_immediately_about,
+		},
+		OptionTranslation{
+			"hide-ai-button",
+			&tr::lng_settings_experimental_option_hide_ai_button,
+			&tr::lng_settings_experimental_option_hide_ai_button_about,
+		},
+		OptionTranslation{
+			"force-compose-search-one-column",
+			&tr::lng_settings_experimental_option_force_compose_search_one_column,
+			&tr::lng_settings_experimental_option_force_compose_search_one_column_about,
+		},
+		OptionTranslation{
+			"view-profile-in-chats-list-context-menu",
+			&tr::lng_settings_experimental_option_view_profile_in_chats_list_context_menu,
+			&tr::lng_settings_experimental_option_view_profile_in_chats_list_context_menu_about,
+		},
+		OptionTranslation{
+			"show-peer-id-below-about",
+			&tr::lng_settings_experimental_option_show_peer_id_below_about,
+			&tr::lng_settings_experimental_option_show_peer_id_below_about_about,
+		},
+		OptionTranslation{
+			"show-channel-joined-below-about",
+			&tr::lng_settings_experimental_option_show_channel_joined_below_about,
+			&tr::lng_settings_experimental_option_show_channel_joined_below_about_about,
+		},
+		OptionTranslation{
+			"profile-media-tabs",
+			&tr::lng_settings_experimental_option_profile_media_tabs,
+			&tr::lng_settings_experimental_option_profile_media_tabs_about,
+		},
+		OptionTranslation{
+			"profile-media-tabs-expanded",
+			&tr::lng_settings_experimental_option_profile_media_tabs_expanded,
+			&tr::lng_settings_experimental_option_profile_media_tabs_expanded_about,
+		},
+		OptionTranslation{
+			"tabbed-panel-show-on-click",
+			&tr::lng_settings_experimental_option_tabbed_panel_show_on_click,
+			&tr::lng_settings_experimental_option_tabbed_panel_show_on_click_about,
+		},
+		OptionTranslation{
+			"unlimited-recent-stickers",
+			&tr::lng_settings_experimental_option_unlimited_recent_stickers,
+			&tr::lng_settings_experimental_option_unlimited_recent_stickers_about,
+		},
+		OptionTranslation{
+			"disable-autoplay-next",
+			&tr::lng_settings_experimental_option_disable_autoplay_next,
+			&tr::lng_settings_experimental_option_disable_autoplay_next_about,
+		},
+		OptionTranslation{
+			"external-media-viewer",
+			&tr::lng_settings_experimental_option_external_media_viewer,
+			&tr::lng_settings_experimental_option_external_media_viewer_about,
+		},
+		OptionTranslation{
+			"ffmpeg-multithread",
+			&tr::lng_settings_experimental_option_ffmpeg_multithread,
+			&tr::lng_settings_experimental_option_ffmpeg_multithread_about,
+		},
+		OptionTranslation{
+			"hide-reply-button",
+			&tr::lng_settings_experimental_option_hide_reply_button,
+			&tr::lng_settings_experimental_option_hide_reply_button_about,
+		},
+		OptionTranslation{
+			"custom-notification",
+			&tr::lng_settings_experimental_option_custom_notification,
+			&tr::lng_settings_experimental_option_custom_notification_about,
+		},
+		OptionTranslation{
+			"gnotification",
+			&tr::lng_settings_experimental_option_gnotification,
+			&tr::lng_settings_experimental_option_gnotification_about,
+		},
+		OptionTranslation{
+			"mac-modern-notifications",
+			&tr::lng_settings_experimental_option_mac_modern_notifications,
+			&tr::lng_settings_experimental_option_mac_modern_notifications_about,
+		},
+		OptionTranslation{
+			"fractional-scaling-enabled",
+			&tr::lng_settings_experimental_option_fractional_scaling_enabled,
+			&tr::lng_settings_experimental_option_fractional_scaling_enabled_about,
+		},
+		OptionTranslation{
+			"high-dpi-downscale",
+			&tr::lng_settings_experimental_option_high_dpi_downscale,
+			&tr::lng_settings_experimental_option_high_dpi_downscale_about,
+		},
+		OptionTranslation{
+			"use-qt-rhi",
+			&tr::lng_settings_experimental_option_use_qt_rhi,
+			&tr::lng_settings_experimental_option_use_qt_rhi_about,
+		},
+		OptionTranslation{
+			"enable-vulkan-rhi",
+			&tr::lng_settings_experimental_option_enable_vulkan_rhi,
+			&tr::lng_settings_experimental_option_enable_vulkan_rhi_about,
+		},
+		OptionTranslation{
+			"freetype",
+			&tr::lng_settings_experimental_option_freetype,
+			&tr::lng_settings_experimental_option_freetype_about,
+		},
+		OptionTranslation{
+			"kinetic-scroller",
+			&tr::lng_settings_experimental_option_kinetic_scroller,
+			nullptr,
+		},
+		OptionTranslation{
+			"touchbar-disabled",
+			&tr::lng_settings_experimental_option_touchbar_disabled,
+			nullptr,
+		},
+		OptionTranslation{
+			"new-windows-size-as-first",
+			&tr::lng_settings_experimental_option_new_windows_size_as_first,
+			&tr::lng_settings_experimental_option_new_windows_size_as_first_about,
+		},
+		OptionTranslation{
+			"prefer-ipv6",
+			&tr::lng_settings_experimental_option_prefer_ipv6,
+			&tr::lng_settings_experimental_option_prefer_ipv6_about,
+		},
+		OptionTranslation{
+			"skip-url-scheme-register",
+			&tr::lng_settings_experimental_option_skip_url_scheme_register,
+			&tr::lng_settings_experimental_option_skip_url_scheme_register_about,
+		},
+		OptionTranslation{
+			"deadlock-detector",
+			&tr::lng_settings_experimental_option_deadlock_detector,
+			&tr::lng_settings_experimental_option_deadlock_detector_about,
+		},
+		OptionTranslation{
+			"webview-debug-enabled",
+			&tr::lng_settings_experimental_option_webview_debug_enabled,
+			&tr::lng_settings_experimental_option_webview_debug_enabled_about,
+		},
+		OptionTranslation{
+			"webview-legacy-edge",
+			&tr::lng_settings_experimental_option_webview_legacy_edge,
+			&tr::lng_settings_experimental_option_webview_legacy_edge_about,
+		},
+		OptionTranslation{
+			"fast-buttons-mode",
+			&tr::lng_settings_experimental_option_fast_buttons_mode,
+			&tr::lng_settings_experimental_option_fast_buttons_mode_about,
+		},
+		OptionTranslation{
+			"folder-favorite-link",
+			&tr::lng_settings_experimental_option_folder_favorite_link,
+			&tr::lng_settings_experimental_option_folder_favorite_link_about,
+		},
+	};
+	return result;
+}
+
+struct OptionText {
+	QString name;
+	QString description;
+};
+
+[[nodiscard]] OptionText LocalizedOptionText(
+		const QString &id,
+		const QString &name,
+		const QString &description) {
+	for (const auto &translation : OptionTranslations()) {
+		if (id == QString::fromLatin1(translation.id)) {
+			return {
+				.name = (*translation.name)(tr::now),
+				.description = translation.description
+					? (*translation.description)(tr::now)
+					: QString(),
+			};
+		}
+	}
+	return { .name = name, .description = description };
+}
+
 void SetupCopyDeepLink(
 		not_null<Window::Controller*> window,
 		not_null<Button*> button,
@@ -180,14 +421,19 @@ void SetupCopyDeepLink(
 		*menu = base::make_unique_q<Ui::PopupMenu>(
 			button,
 			st::popupMenuWithIcons);
-		(*menu)->addAction(u"Copy deep link"_q, [=] {
-			TextUtilities::SetClipboardText({ link });
-			window->showToast({
-				.text = { u"Deep link copied to clipboard."_q },
-				.iconLottie = u"toast/voip_invite"_q,
-				.iconLottieSize = st::toastLottieIconSize,
-			});
-		}, &st::menuIconCopy);
+		(*menu)->addAction(
+			tr::lng_settings_experimental_copy_link(tr::now),
+			[=] {
+				TextUtilities::SetClipboardText({ link });
+				window->showToast({
+					.text = {
+						tr::lng_settings_experimental_deep_link_copied(tr::now)
+					},
+					.iconLottie = u"toast/voip_invite"_q,
+					.iconLottieSize = st::toastLottieIconSize,
+				});
+			},
+			&st::menuIconCopy);
 		(*menu)->popup(QCursor::pos());
 		e->accept();
 	}, button->lifetime());
@@ -254,7 +500,10 @@ QString AddOption(
 		rpl::producer<QString> query,
 		Fn<void(const QString&, not_null<QWidget*>)> registerHighlight) {
 	const auto name = option.name().isEmpty() ? option.id() : option.name();
-	const auto &description = option.description();
+	const auto text = LocalizedOptionText(
+		option.id(),
+		name,
+		option.description());
 
 	const auto wrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
@@ -278,8 +527,8 @@ QString AddOption(
 	const auto referrer = OptionReferrer(option);
 	const auto button = AddOptionRow(
 		inner,
-		name,
-		description,
+		text.name,
+		text.description,
 		(!referrer.isEmpty() || option.relevant())
 			? st::settingsButtonNoIcon
 			: st::settingsOptionDisabled);
@@ -333,7 +582,7 @@ QString AddOption(
 		}, inner->lifetime());
 	}
 
-	const auto searchable = name + ' ' + description;
+	const auto searchable = text.name + ' ' + text.description;
 	const auto terms = SearchWords(searchable);
 	std::move(
 		query
@@ -356,7 +605,10 @@ QString AddFavoriteLinkButton(
 	const auto name = option->name().isEmpty()
 		? option->id()
 		: option->name();
-	const auto &description = option->description();
+	const auto text = LocalizedOptionText(
+		option->id(),
+		name,
+		option->description());
 
 	const auto wrap = container->add(
 		object_ptr<Ui::SlideWrap<Ui::VerticalLayout>>(
@@ -375,7 +627,7 @@ QString AddFavoriteLinkButton(
 	});
 	const auto button = AddButtonWithLabel(
 		inner,
-		rpl::single(name),
+		rpl::single(text.name),
 		std::move(label),
 		st::settingsButtonNoIcon);
 	button->setClickedCallback([=] {
@@ -388,7 +640,7 @@ QString AddFavoriteLinkButton(
 
 	SetupCopyDeepLink(window, button, option->id());
 
-	const auto searchable = name + ' ' + description;
+	const auto searchable = text.name + ' ' + text.description;
 	const auto terms = SearchWords(searchable);
 	std::move(
 		query
@@ -457,7 +709,7 @@ void SetupExperimental(
 	};
 	const auto categories = std::vector<Category>{
 		{
-			u"Chats"_q,
+			tr::lng_settings_experimental_category_chats(tr::now),
 			{
 				Dialogs::kOptionForumHideChatsList,
 				Dialogs::kOptionDialogsUnreadOnTop,
@@ -469,7 +721,7 @@ void SetupExperimental(
 			}
 		},
 		{
-			u"Messages"_q,
+			tr::lng_settings_experimental_category_messages(tr::now),
 			{
 				Ui::kOptionUseSmallMsgBubbleRadius,
 				HistoryView::kOptionUnlimitedMessageWidth,
@@ -479,7 +731,7 @@ void SetupExperimental(
 			}
 		},
 		{
-			u"Profile"_q,
+			tr::lng_settings_experimental_category_profile(tr::now),
 			{
 				Window::kOptionViewProfileInChatsListContextMenu,
 				Info::Profile::kOptionShowPeerIdBelowAbout,
@@ -489,14 +741,14 @@ void SetupExperimental(
 			}
 		},
 		{
-			u"Stickers and emoji"_q,
+			tr::lng_settings_experimental_category_stickers_emoji(tr::now),
 			{
 				ChatHelpers::kOptionTabbedPanelShowOnClick,
 				ChatHelpers::kOptionUnlimitedRecentStickers,
 			}
 		},
 		{
-			u"Media"_q,
+			tr::lng_settings_experimental_category_media(tr::now),
 			{
 				Media::Player::kOptionDisableAutoplayNext,
 				Window::kOptionExternalMediaViewer,
@@ -504,7 +756,7 @@ void SetupExperimental(
 			}
 		},
 		{
-			u"Notifications"_q,
+			tr::lng_settings_experimental_category_notifications(tr::now),
 			{
 				Window::Notifications::kOptionHideReplyButton,
 				Window::Notifications::kOptionCustomNotification,
@@ -513,7 +765,7 @@ void SetupExperimental(
 			}
 		},
 		{
-			u"Interface"_q,
+			tr::lng_settings_experimental_category_interface(tr::now),
 			{
 				Core::kOptionFractionalScalingEnabled,
 				Core::kOptionHighDpiDownscale,
@@ -528,7 +780,7 @@ void SetupExperimental(
 			}
 		},
 		{
-			u"System"_q,
+			tr::lng_settings_experimental_category_system(tr::now),
 			{
 				MTP::details::kOptionPreferIPv6,
 				Core::kOptionSkipUrlSchemeRegister,
@@ -595,7 +847,7 @@ void SetupExperimental(
 		});
 	}
 
-	addCategory(u"Other"_q, [&](
+	addCategory(tr::lng_settings_experimental_category_other(tr::now), [&](
 			not_null<Ui::VerticalLayout*> inner,
 			std::vector<QString> &searchable) {
 		if (base::options::lookup<bool>(kOptionFastButtonsMode).value()) {
@@ -627,12 +879,12 @@ rpl::producer<QString> Experimental::title() {
 void Experimental::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 	const auto window = &controller()->window();
 	addAction(
-		u"Export"_q,
+		tr::lng_settings_experimental_export(tr::now),
 		[=] {
 			TextUtilities::SetClipboardText(
 				{ EncodeOptionsToText(base::options::serialize()) });
 			window->showToast({
-				.text = { u"Experimental settings code copied to clipboard."_q },
+				.text = { tr::lng_settings_experimental_code_copied(tr::now) },
 				.iconLottie = u"toast/copy"_q,
 				.iconLottieSize = st::toastLottieIconSize,
 			});
@@ -642,23 +894,22 @@ void Experimental::fillTopBarMenu(const Ui::Menu::MenuCallback &addAction) {
 		return;
 	}
 	addAction(
-		u"Import"_q,
+		tr::lng_settings_experimental_import(tr::now),
 		[=] {
 			const auto decoded = DecodeOptionsFromText(
 				QGuiApplication::clipboard()->text());
 			if (!decoded.ok) {
-				window->showToast(u"Clipboard does not contain "
-					"a valid experimental settings code."_q);
+				window->showToast(
+					tr::lng_settings_experimental_clipboard_invalid(tr::now));
 				return;
 			}
 			if (!base::options::deserialize(decoded.json)) {
-				window->showToast(u"Experimental settings code is valid"
-					", but data format is not supported."_q);
+				window->showToast(
+					tr::lng_settings_experimental_unsupported_format(tr::now));
 				return;
 			}
 			_reloadOptionsRequests.fire({});
-			window->showToast(u"Experimental settings imported "
-				"from code in clipboard."_q);
+			window->showToast(tr::lng_settings_experimental_imported(tr::now));
 		},
 		&st::menuIconImportTheme);
 }
