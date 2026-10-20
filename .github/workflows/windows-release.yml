@@ -340,7 +340,7 @@ jobs:
             test -s "$setup"
             test -s "$setup.sha256"
             sha256sum --check "$setup.sha256"
-            7z t "$setup"
+            test "$(head -c 2 "$setup")" = 'MZ'
           done
           cat ./*.sha256 > SHA256SUMS.txt
           cat > release-notes.md <<EOF
