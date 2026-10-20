@@ -123,7 +123,7 @@ jobs:
         run: |
           mkdir -p ../DesktopPrivate
           random_key() {
-            printf -- '-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----\n' \
+            printf -- '-----BEGIN RSA PRIVATE KEY-----\\n%s\\n-----END RSA PRIVATE KEY-----\\n' \
               "$(head -c 96 /dev/urandom | base64 | tr -d '\n')"
           }
           printf 'const char *PrivateKey = "%s";\nconst char *PrivateBetaKey = "%s";\n' \
@@ -172,17 +172,21 @@ jobs:
           - arch: x86_64
             runner: macos-15-intel
           - arch: arm64
-            runner: macos-14
+            runner: macos-15
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 360
     env:
       API_ID: ${{ secrets.TDESKTOP_API_ID || '2040' }}
       API_HASH: ${{ secrets.TDESKTOP_API_HASH || 'b18441a1ff607e10a989891a5462e627' }}
+    defaults:
+      run:
+        working-directory: src
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ needs.version.outputs.commit }}
           submodules: true
+          path: src
       - name: Free macOS build space
         run: |
           df -h /
@@ -199,13 +203,18 @@ jobs:
           path: |
             Libraries
             ThirdParty
-          key: macos-${{ matrix.arch }}-release-dependencies-${{ hashFiles('Telegram/build/prepare/**', 'Telegram/build/qt_version.py') }}
-          restore-keys: macos-${{ matrix.arch }}-release-dependencies-
+          key: macos-${{ matrix.arch }}-release-dependencies-v2-${{ hashFiles('src/Telegram/build/prepare/**', 'src/Telegram/build/qt_version.py', 'src/.github/scripts/setup_macos_build_tools.sh') }}
+          restore-keys: macos-${{ matrix.arch }}-release-dependencies-v2-
       - name: Install macOS build tools
-        run: brew install automake libtool meson nasm ninja pkg-config
+        run: bash .github/scripts/setup_macos_build_tools.sh
       - name: Prepare macOS dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
         run: ./Telegram/build/prepare/mac.sh silent
+      - name: Trim macOS dependency cache
+        run: |
+          du -sh ../Libraries ../ThirdParty
+          find ../Libraries \( \( ! \( -name '*.a' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -perm +111 \) -type f \) -o -empty \) -delete
+          du -sh ../Libraries ../ThirdParty
+          df -h /
       - name: Save macOS dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
@@ -218,7 +227,7 @@ jobs:
         run: |
           mkdir -p ../DesktopPrivate
           random_key() {
-            printf -- '-----BEGIN RSA PRIVATE KEY-----\n%s\n-----END RSA PRIVATE KEY-----\n' \
+            printf -- '-----BEGIN RSA PRIVATE KEY-----\\n%s\\n-----END RSA PRIVATE KEY-----\\n' \
               "$(head -c 96 /dev/urandom | base64 | tr -d '\n')"
           }
           printf 'const char *PrivateKey = "%s";\nconst char *PrivateBetaKey = "%s";\n' \
@@ -226,10 +235,11 @@ jobs:
           printf 'static const char *AlphaPrivateKey = "%s";\n' \
             "$(random_key)" > ../DesktopPrivate/alpha_private.h
       - name: Build macOS release
-        working-directory: Telegram
+        working-directory: src/Telegram
         run: |
           ./configure.sh \
             -D CMAKE_CONFIGURATION_TYPES=Release \
+            -D CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED=NO \
             -D CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
             -D DESKTOP_APP_MAC_ARCH=${{ matrix.arch }} \
             -D TDESKTOP_API_ID="$API_ID" \
@@ -255,7 +265,7 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: cross-platform-macos-${{ matrix.arch }}
-          path: dist/*
+          path: src/dist/*
           compression-level: 0
           retention-days: 14
 
@@ -275,6 +285,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ needs.version.outputs.tag }}
           RELEASE_TITLE: ${{ needs.version.outputs.title }}
           RELEASE_COMMIT: ${{ needs.version.outputs.commit }}
