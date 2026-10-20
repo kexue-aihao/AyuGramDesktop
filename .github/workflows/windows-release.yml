@@ -3,16 +3,16 @@ name: Windows self-build release
 on:
   push:
     tags:
-      - 'base-*'
+      - 'v*'
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag (base-YYYYMMDD)
+        description: Release tag (vYYYYMMDD)
         required: true
-        default: base-20261018
+        default: v20261020
         type: string
       publish:
-        description: Publish the release after both builds succeed (tag must exist at this commit)
+        description: Publish the release after the build succeeds (tag must exist at this commit)
         default: false
         type: boolean
       dependencies_only:
@@ -46,11 +46,11 @@ jobs:
           PUBLISH: ${{ !inputs.dependencies_only && (github.event_name == 'push' || inputs.publish) }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^base-([0-9]{8})$ ]]; then
-            echo '::error::Release tag must use base-YYYYMMDD.'
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]{8})$ ]]; then
+            echo '::error::Release tag must use vYYYYMMDD.'
             exit 1
           fi
-          title="Ayugram Desktop Base ${BASH_REMATCH[1]}"
+          title="Ayugram Desktop v${BASH_REMATCH[1]}"
           commit=$(git rev-parse HEAD)
           if [[ "$PUBLISH" == 'true' ]]; then
             git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
@@ -83,12 +83,6 @@ jobs:
             dependency_jobs: 2
             build_parallel: 4
             compiler_parallel: 2
-          - arch: x86
-            target: win
-            libraries: Libraries
-            dependency_jobs: 2
-            build_parallel: 2
-            compiler_parallel: 1
     env:
       GIT_AUTHOR_NAME: github-actions[bot]
       GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
@@ -325,9 +319,9 @@ jobs:
         run: |
           set -euo pipefail
           cd dist
-          for arch in x64 x86; do
-            asset="Ayugram-Desktop-Base-${RELEASE_TAG#base-}-Windows-$arch.zip"
-            setup="Ayugram-Desktop-Base-${RELEASE_TAG#base-}-Windows-$arch-setup.exe"
+          for arch in x64; do
+            asset="Ayugram-Desktop-v${RELEASE_TAG#v}-Windows-$arch.zip"
+            setup="Ayugram-Desktop-v${RELEASE_TAG#v}-Windows-$arch-setup.exe"
             test -s "$asset"
             test -s "$asset.sha256"
             sha256sum --check "$asset.sha256"
@@ -339,7 +333,7 @@ jobs:
           done
           cat ./*.sha256 > SHA256SUMS.txt
           cat > release-notes.md <<EOF
-          Windows x64 / x86 自构建安装包和便携版，基于 AyuGram Desktop $BASE_VERSION。
+          Windows x64 自构建安装包和便携版，基于 AyuGram Desktop $BASE_VERSION。
 
           - 安装包采用 Telegram 官方使用的 Inno Setup 形式。
           - 可运行对应架构的 setup.exe 安装，或解压 ZIP 使用便携版。

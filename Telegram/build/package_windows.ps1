@@ -3,7 +3,7 @@ param(
     [ValidateSet('x64', 'x86')]
     [string] $Architecture,
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^base-[0-9]{8}$')]
+    [ValidatePattern('^v[0-9]{8}$')]
     [string] $ReleaseTag
 )
 
@@ -37,7 +37,7 @@ foreach ($file in @($binary, $compiler)) {
 }
 
 $dist = Join-Path (Split-Path $repository -Parent) 'dist'
-$folderName = "Ayugram-Desktop-Base-$($ReleaseTag.Substring(5))-Windows-$Architecture"
+$folderName = "Ayugram-Desktop-v$($ReleaseTag.Substring(1))-Windows-$Architecture"
 $staging = Join-Path $dist $folderName
 $archive = Join-Path $dist "$folderName.zip"
 if ((Test-Path -LiteralPath $staging) -or (Test-Path -LiteralPath $archive)) {
@@ -54,7 +54,7 @@ foreach ($name in @('LICENSE', 'LEGAL')) {
 $commit = (& git -C $repository rev-parse HEAD).Trim()
 if ($LASTEXITCODE -ne 0) { throw 'Cannot determine source commit.' }
 $details = @(
-    "Release: Ayugram Desktop Base $($ReleaseTag.Substring(5))",
+    "Release: Ayugram Desktop v$($ReleaseTag.Substring(1))",
     "Architecture: Windows $Architecture",
     "Source commit: $commit",
     'Run AyuGram.exe. Account data is stored in TelegramForcePortable beside the executable.',

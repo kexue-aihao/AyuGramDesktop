@@ -3,7 +3,7 @@ param(
     [ValidateSet('x64', 'x86')]
     [string] $Architecture,
     [Parameter(Mandatory = $true)]
-    [ValidatePattern('^base-[0-9]{8}$')]
+    [ValidatePattern('^v[0-9]{8}$')]
     [string] $ReleaseTag
 )
 
@@ -20,7 +20,7 @@ foreach ($file in @($binary, $compiler)) {
 
 $dist = Join-Path (Split-Path $repository -Parent) 'dist'
 New-Item -ItemType Directory -Path $dist -Force | Out-Null
-$releaseVersion = $ReleaseTag.Substring(5)
+$releaseVersion = $ReleaseTag.Substring(1)
 $versionLine = Get-Content (Join-Path $repository 'Telegram/build/version') |
     Where-Object { $_ -match '^AppVersionStr\s+' } |
     Select-Object -First 1
@@ -28,7 +28,7 @@ if ($versionLine -notmatch '^AppVersionStr\s+(\S+)') {
     throw 'AppVersionStr was not found in Telegram/build/version.'
 }
 $version = $Matches[1]
-$name = "Ayugram-Desktop-Base-$releaseVersion-Windows-$Architecture-setup"
+$name = "Ayugram-Desktop-v$releaseVersion-Windows-$Architecture-setup"
 $installer = Join-Path $dist "$name.exe"
 $iss = Join-Path $repository 'Telegram/build/setup_ayugram.iss'
 

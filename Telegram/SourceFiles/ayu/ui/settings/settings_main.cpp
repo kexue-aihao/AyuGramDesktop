@@ -143,9 +143,18 @@ void BuildVersionInfo(SectionBuilder &builder) {
 						return;
 					}
 
-					const auto currentNumber = QString::fromLatin1(
-						Ayu::kReleaseTag).section('-', -1).toLongLong();
-					const auto remoteNumber = tag.section('-', -1).toLongLong();
+					const auto releaseNumber = [](const QString &value) {
+						auto digits = QString();
+						for (const auto ch : value) {
+							if (ch.isDigit()) {
+								digits.append(ch);
+							}
+						}
+						return digits.toLongLong();
+					};
+					const auto currentNumber = releaseNumber(
+						QString::fromLatin1(Ayu::kReleaseTag));
+					const auto remoteNumber = releaseNumber(tag);
 					const auto updateAvailable = (currentNumber > 0
 						&& remoteNumber > 0)
 						? (remoteNumber > currentNumber)

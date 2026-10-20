@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag (base-YYYYMMDD)
+        description: Release tag (vYYYYMMDD)
         required: true
-        default: base-20261018
+        default: v20261020
         type: string
       publish:
         description: Publish the built archives to the selected GitHub Release
@@ -39,11 +39,11 @@ jobs:
           PUBLISH: ${{ inputs.publish }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^base-([0-9]{8})$ ]]; then
-            echo '::error::Release tag must use base-YYYYMMDD.'
+          if [[ ! "$RELEASE_TAG" =~ ^v([0-9]{8})$ ]]; then
+            echo '::error::Release tag must use vYYYYMMDD.'
             exit 1
           fi
-          title="Ayugram Desktop Base ${BASH_REMATCH[1]}"
+          title="Ayugram Desktop v${BASH_REMATCH[1]}"
           commit=$(git rev-parse HEAD)
           if [[ "$PUBLISH" == 'true' ]]; then
             git fetch --no-tags origin "refs/tags/$RELEASE_TAG"
@@ -151,7 +151,7 @@ jobs:
         run: |
           mkdir -p dist
           version="${{ needs.version.outputs.tag }}"
-          archive="Ayugram-Desktop-Base-${version#base-}-Linux-x64.tar.xz"
+          archive="Ayugram-Desktop-v${version#v}-Linux-x64.tar.xz"
           test -x out/Release/AyuGram
           tar -cJf "dist/$archive" -C out/Release AyuGram
           (cd dist && sha256sum "$archive" > "$archive.sha256")
@@ -253,8 +253,8 @@ jobs:
         run: |
           mkdir -p dist
           version="${{ needs.version.outputs.tag }}"
-          archive="Ayugram-Desktop-Base-${version#base-}-macOS-${{ matrix.arch }}.zip"
-          installer="Ayugram-Desktop-Base-${version#base-}-macOS-${{ matrix.arch }}.dmg"
+          archive="Ayugram-Desktop-v${version#v}-macOS-${{ matrix.arch }}.zip"
+          installer="Ayugram-Desktop-v${version#v}-macOS-${{ matrix.arch }}.dmg"
           test -d out/Release/AyuGram.app
           ditto -c -k --keepParent out/Release/AyuGram.app "dist/$archive"
           hdiutil create -volname 'AyuGram Desktop' \

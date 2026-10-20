@@ -7,7 +7,7 @@
 #define CurrentYear GetDateTimeString('yyyy','','')
 
 #ifndef MyOutputBaseFilename
-  #define MyOutputBaseFilename "Ayugram-Desktop-Base-setup"
+  #define MyOutputBaseFilename "Ayugram-Desktop-v-setup"
 #endif
 
 [Setup]
