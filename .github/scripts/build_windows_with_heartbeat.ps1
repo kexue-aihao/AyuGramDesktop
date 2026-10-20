@@ -9,7 +9,9 @@ param(
     [ValidateRange(1, 60)]
     [int] $HeartbeatSeconds = 60,
     [ValidateRange(128, 16384)]
-    [int] $CommitFloorMB = 1024
+    [int] $CommitFloorMB = 512,
+    [ValidateRange(1, 30)]
+    [int] $CommitFloorHeartbeats = 5
 )
 
 $ErrorActionPreference = 'Stop'
@@ -71,7 +73,7 @@ function Invoke-CMakeBuild {
                 } else {
                     $lowCommitCount = 0
                 }
-                if ($lowCommitCount -ge 3) {
+                if ($lowCommitCount -ge $CommitFloorHeartbeats) {
                     # A full build that reaches the commit limit used to hang
                     # for hours (the job was cancelled by its own timeout).
                     # Stop it instead, so the failure is reported quickly.

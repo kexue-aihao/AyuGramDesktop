@@ -140,8 +140,8 @@ jobs:
         continue-on-error: true
         run: |
           ./src/.github/scripts/configure_windows_pagefile.ps1 `
-            -MinimumGB 8 `
-            -MaximumGB 48 `
+            -MinimumGB 32 `
+            -MaximumGB 64 `
             -ReserveGB 10
       - name: Restore third-party tools
         id: tools
