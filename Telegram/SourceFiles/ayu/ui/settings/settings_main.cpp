@@ -97,7 +97,7 @@ void BuildVersionInfo(SectionBuilder &builder) {
 			if (!weak) {
 				return;
 			}
-			weak->showToast(tr::ayu_UpdateChecking());
+			weak->showToast(tr::ayu_UpdateChecking(tr::now));
 
 			auto request = QNetworkRequest(QUrl(
 				u"https://api.github.com/repos/"_q
@@ -120,7 +120,7 @@ void BuildVersionInfo(SectionBuilder &builder) {
 						|| status < 200
 						|| status >= 300) {
 						if (weak) {
-							weak->showToast(tr::ayu_UpdateCheckFailed());
+							weak->showToast(tr::ayu_UpdateCheckFailed(tr::now));
 						}
 						reply->deleteLater();
 						return;
@@ -137,7 +137,7 @@ void BuildVersionInfo(SectionBuilder &builder) {
 						|| tag.isEmpty()
 						|| url.isEmpty()) {
 						if (weak) {
-							weak->showToast(tr::ayu_UpdateCheckFailed());
+							weak->showToast(tr::ayu_UpdateCheckFailed(tr::now));
 						}
 						reply->deleteLater();
 						return;
@@ -152,7 +152,7 @@ void BuildVersionInfo(SectionBuilder &builder) {
 						: (tag != QString::fromLatin1(Ayu::kReleaseTag));
 					if (!updateAvailable) {
 						if (weak) {
-							weak->showToast(tr::ayu_UpdateLatest());
+							weak->showToast(tr::ayu_UpdateLatest(tr::now));
 						}
 					} else {
 						if (weak) {
