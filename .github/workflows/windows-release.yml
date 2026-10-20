@@ -134,6 +134,15 @@ jobs:
           if (-not ($candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })) {
             throw 'Inno Setup compiler (ISCC.exe) is not installed on this runner.'
           }
+      - name: Extend the Windows page file
+        # Telegram needs more commit memory than a 16 GB runner provides
+        # by default; this raises it without a reboot.
+        continue-on-error: true
+        run: |
+          ./src/.github/scripts/configure_windows_pagefile.ps1 `
+            -MinimumGB 8 `
+            -MaximumGB 48 `
+            -ReserveGB 10
       - name: Restore third-party tools
         id: tools
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830

@@ -7,7 +7,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $LogPath,
     [ValidateRange(1, 60)]
-    [int] $HeartbeatSeconds = 60
+    [int] $HeartbeatSeconds = 60,
+    [ValidateRange(128, 16384)]
+    [int] $CommitFloorMB = 1024
 )
 
 $ErrorActionPreference = 'Stop'
@@ -38,6 +40,9 @@ function Invoke-CMakeBuild {
         [System.IO.StreamReader]::new($stream)
     }
     $processEnded = $false
+    $commitExhausted = $false
+    $lowCommitCount = 0
+    $commitLimitMB = 0
 
     try {
         do {
@@ -46,21 +51,46 @@ function Invoke-CMakeBuild {
                 $output = $reader.ReadToEnd()
                 if ($output) { Write-Host $output -NoNewline }
             }
-            $elapsed = (Get-Date) - $started
-            $compilers = @(Get-Process -Name cl -ErrorAction SilentlyContinue)
-            $private = ($compilers | Measure-Object -Property PrivateMemorySize64 -Sum).Sum
-            if (-not $private) { $private = 0 }
-            Write-Host ("Build heartbeat: {0}; compiler processes: {1}; compiler private memory: {2} MB" -f `
-                $elapsed.ToString('hh\:mm\:ss'), $compilers.Count, [math]::Round($private / 1MB))
-        } while (-not $finished)
-        $process.WaitForExit()
-        $exitCode = $process.ExitCode
+            if (-not $finished) {
+                $elapsed = (Get-Date) - $started
+                $compilers = @(Get-Process -Name cl -ErrorAction SilentlyContinue)
+                $private = ($compilers | Measure-Object -Property PrivateMemorySize64 -Sum).Sum
+                $privateMax = ($compilers | Measure-Object -Property PrivateMemorySize64 -Maximum).Maximum
+                if (-not $private) { $private = 0 }
+                if (-not $privateMax) { $privateMax = 0 }
+                $cpu = ($compilers | Measure-Object -Property CPU -Sum).Sum
+                if (-not $cpu) { $cpu = 0 }
+                $memory = Get-CimInstance Win32_OperatingSystem -Property TotalVirtualMemorySize, FreeVirtualMemory
+                $commitLimitMB = [math]::Round($memory.TotalVirtualMemorySize / 1KB)
+                $commitFreeMB = [math]::Round($memory.FreeVirtualMemory / 1KB)
+                Write-Host ("Build heartbeat: {0}; compiler processes: {1}; compiler private memory: {2} MB (max {3} MB); compiler CPU: {4} s; commit free: {5} MB of {6} MB" -f `
+                    $elapsed.ToString('hh\:mm\:ss'), $compilers.Count, [math]::Round($private / 1MB), `
+                    [math]::Round($privateMax / 1MB), [math]::Round($cpu), $commitFreeMB, $commitLimitMB)
+                if ($commitFreeMB -lt $CommitFloorMB) {
+                    $lowCommitCount++
+                } else {
+                    $lowCommitCount = 0
+                }
+                if ($lowCommitCount -ge 3) {
+                    # A full build that reaches the commit limit used to hang
+                    # for hours (the job was cancelled by its own timeout).
+                    # Stop it instead, so the failure is reported quickly.
+                    Write-Host ("Commit memory stayed below {0} MB for {1} heartbeats; stopping the build." -f $CommitFloorMB, $lowCommitCount)
+                    $commitExhausted = $true
+                    $process.Kill($true)
+                    $process.WaitForExit()
+                }
+            }
+        } while (-not $finished -and -not $commitExhausted)
+        if (-not $commitExhausted) {
+            $process.WaitForExit()
+            $exitCode = $process.ExitCode
+        }
         $processEnded = $true
         foreach ($reader in $readers) {
             $output = $reader.ReadToEnd()
             if ($output) { Write-Host $output -NoNewline }
         }
-        return $exitCode
     } finally {
         if (-not $processEnded -and -not $process.HasExited) {
             $process.Kill($true)
@@ -69,6 +99,11 @@ function Invoke-CMakeBuild {
         foreach ($reader in $readers) { $reader.Dispose() }
         $process.Dispose()
     }
+
+    if ($commitExhausted) {
+        throw "The build exhausted the runner commit memory (limit $commitLimitMB MB). The page file is too small for this compiler workload."
+    }
+    return $exitCode
 }
 
 $errorPath = "$LogPath.stderr"
