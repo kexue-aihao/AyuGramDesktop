@@ -291,6 +291,8 @@ jobs:
           path: |
             ${{ runner.temp }}/build-${{ matrix.arch }}.log
             ${{ runner.temp }}/build-${{ matrix.arch }}.log.stderr
+            ${{ runner.temp }}/build-${{ matrix.arch }}.log.retry
+            ${{ runner.temp }}/build-${{ matrix.arch }}.log.retry.stderr
             ${{ runner.temp }}/prepare-${{ matrix.arch }}.log
           if-no-files-found: ignore
           retention-days: 7
