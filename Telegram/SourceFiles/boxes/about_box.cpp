@@ -136,6 +136,9 @@ namespace {
 	} else if (Platform::IsWindowsARM64()) {
 		result += " arm64";
 	}
+#ifdef TDESKTOP_SELF_BUILD_TAG
+	result += u" \u00B7 "_q + QString::fromLatin1(TDESKTOP_SELF_BUILD_TAG);
+#endif
 #ifdef _DEBUG
 	result += " DEBUG";
 #endif

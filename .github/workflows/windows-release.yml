@@ -256,7 +256,8 @@ jobs:
             '-DDESKTOP_APP_SPECIAL_TARGET=${{ matrix.target }}',
             '-DDESKTOP_APP_ENABLE_LTO=OFF',
             '-DDESKTOP_APP_DISABLE_AUTOUPDATE=ON',
-            '-DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON'
+            '-DDESKTOP_APP_DISABLE_CRASH_REPORTS=ON',
+            '-DTDESKTOP_SELF_BUILD_TAG=${{ needs.version.outputs.tag }}'
           )
           & ./configure.bat @arguments
           if ($LASTEXITCODE -ne 0) { throw "Configure failed: $LASTEXITCODE" }

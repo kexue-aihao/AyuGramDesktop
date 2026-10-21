@@ -2617,6 +2617,10 @@ PRIVATE
     U_STATIC_IMPLEMENTATION=1 # AyuGram: do not use __declspec(dllimport) when including icu headers
 )
 
+if (NOT TDESKTOP_SELF_BUILD_TAG STREQUAL "")
+    target_compile_definitions(Telegram PRIVATE TDESKTOP_SELF_BUILD_TAG="${TDESKTOP_SELF_BUILD_TAG}")
+endif()
+
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (APPLE
     OR is_multi_config
