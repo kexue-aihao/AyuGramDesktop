@@ -9216,6 +9216,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "ayu_UpdateChecking" = "正在检查更新…";
 "ayu_UpdateLatest" = "当前已是最新版本";
 "ayu_UpdateCheckFailed" = "检查更新失败，请稍后重试";
+"ayu_UpdateAvailableTitle" = "发现新版本";
+"ayu_UpdateDownloadAndInstall" = "下载并安装";
+"ayu_UpdateOpenReleasePage" = "打开发布页";
+"ayu_UpdateDownloading" = "正在下载更新…";
+"ayu_UpdateDownloadFailed" = "下载更新失败，请稍后重试";
+"ayu_UpdateVerifyFailed" = "更新包校验失败，已删除下载的文件";
+"ayu_UpdateReadyTitle" = "更新已就绪";
+"ayu_UpdateReadyText" = "更新包已下载并通过 SHA-256 校验，是否立即安装？";
+"ayu_UpdateInstallNow" = "立即安装";
+"ayu_UpdateInstallLater" = "稍后";
 "ayu_MainFont" = "Application Font";
 "ayu_MonospaceFont" = "Monospace Font";
 "ayu_FontDefault" = "Default";
