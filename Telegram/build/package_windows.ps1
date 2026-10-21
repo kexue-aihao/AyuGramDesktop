@@ -43,9 +43,7 @@ $archive = Join-Path $dist "$folderName.zip"
 if ((Test-Path -LiteralPath $staging) -or (Test-Path -LiteralPath $archive)) {
     throw "Package output already exists: $staging"
 }
-New-Item -ItemType Directory -Path (Join-Path $staging 'TelegramForcePortable') -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $staging "modules/$Architecture/d3d") -Force | Out-Null
-Set-Content -LiteralPath (Join-Path $staging 'TelegramForcePortable/keep') -Value '' -Encoding utf8NoBOM
 Copy-Item -LiteralPath $binary -Destination $staging
 Copy-Item -LiteralPath $compiler -Destination (Join-Path $staging "modules/$Architecture/d3d")
 foreach ($name in @('LICENSE', 'LEGAL')) {
@@ -57,7 +55,7 @@ $details = @(
     "Release: Ayugram Desktop v$($ReleaseTag.Substring(1))",
     "Architecture: Windows $Architecture",
     "Source commit: $commit",
-    'Run AyuGram.exe. Account data is stored in TelegramForcePortable beside the executable.',
+    'Run AyuGram.exe. Account data is stored in %APPDATA%\AyuGramDesktop.',
     'This self-build is unsigned. Automatic updates are disabled.'
 )
 Set-Content -LiteralPath (Join-Path $staging 'BUILD.txt') -Value $details -Encoding utf8NoBOM

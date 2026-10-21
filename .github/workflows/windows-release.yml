@@ -350,7 +350,7 @@ jobs:
           - 安装包采用 Telegram 官方使用的 Inno Setup 形式。
           - 可运行对应架构的 setup.exe 安装，或解压 ZIP 使用便携版。
           - 下载加速位于 AyuGram → General → Downloads → Download Acceleration，提供 Off / Fast / Ultra 三档。
-          - TelegramForcePortable 目录将账号数据保存在程序旁边；移动或删除压缩包解压目录前请备份该目录。
+          - 账号数据保存在 %APPDATA%\AyuGramDesktop，与安装版一致。
           - 此自构建版本未进行代码签名，关闭自动更新；后续版本请从本仓库 Releases 获取。
           - SHA-256 校验值见 SHA256SUMS.txt。
 
